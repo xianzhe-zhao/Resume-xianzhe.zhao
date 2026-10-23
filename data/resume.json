@@ -1,0 +1,245 @@
+{
+  "base": {
+    "name": "赵先哲",
+    "gender": "男",
+    "age": "32 岁",
+    "phone": "17614336834",
+    "wechat": "17614336834",
+    "email": "971554652@qq.com",
+    "city": "北京",
+    "workYears": "9 年",
+    "certs": [
+      "亚马逊 AWS Certified AI Practitioner",
+      "三星 SW 高级算法认证",
+      "计算机二级"
+    ],
+    "skills": {
+      "后端开发": [
+        "Java",
+        "ASP.Net",
+        "ABAP",
+        "REST API",
+        "JWT"
+      ],
+      "前端开发": [
+        "Vue.js",
+        "JavaScript",
+        "小程序"
+      ],
+      "数据库 / 自动化": [
+        "PostgreSQL",
+        "Brity Works RPA"
+      ],
+      "ERP / 报表": [
+        "SAP Hybris",
+        "Next ERP",
+        "Crystal Reports"
+      ],
+      "AI / 云 / 系统": [
+        "AWS",
+        "LLM / Agent",
+        "Linux"
+      ]
+    },
+    "experience": [
+      {
+        "company": "三星数据系统（中国）有限公司",
+        "role": "开发运维工程师",
+        "period": "2019.01 — 至今",
+        "projects": [
+          {
+            "title": "RMS 系统全栈开发与运维",
+            "period": "2020.01 — 至今",
+            "items": [
+              {
+                "label": "核心系统研发",
+                "text": "主导公司核心 RMS（资源管理系统）全生命周期开发，负责后端（Java/ASP.Net）到前端（Vue.js）全栈实现，确保高并发场景稳定运行"
+              },
+              {
+                "label": "架构与接口",
+                "text": "设计并维护基于 RESTful API 的微服务接口，采用 JWT 安全鉴权与权限管理，实现前后端高效分离与数据交互"
+              },
+              {
+                "label": "数据库优化",
+                "text": "负责 PostgreSQL 数据库日常运维与性能调优，通过索引优化与查询优化，显著提升复杂报表生成速度"
+              },
+              {
+                "label": "持续迭代",
+                "text": "4.5 年持续响应业务需求变更、迭代功能，系统服务三星内部用户，保障业务重大事务顺利运行"
+              }
+            ]
+          },
+          {
+            "title": "企业自动化与数字化转型 RPA",
+            "period": "2020.01 — 至今",
+            "items": [
+              {
+                "label": "流程自动化",
+                "text": "基于 Brity Works RPA 平台，深入分析业务流程痛点，设计开发多款自动化机器人（Bot），替代人工完成重复性、易出错的数据录入与核对"
+              },
+              {
+                "label": "脚本开发",
+                "text": "使用 JavaScript 编写复杂自定义脚本，解决标准组件无法处理的特殊业务逻辑，扩展自动化工具适用场景"
+              },
+              {
+                "label": "效能提升",
+                "text": "覆盖三星各业务系统自动化流程及 Excel 工作流，每年自动替代约 1400 小时重复性人工操作（约 0.7 个全职人力）"
+              }
+            ]
+          },
+          {
+            "title": "ERP 项目实施与管理",
+            "period": "2021.04 — 至今",
+            "items": [
+              {
+                "label": "项目统筹",
+                "text": "担任 Next ERP 项目经理，负责项目进度控制、资源协调与风险管理，确保项目按期平滑上线"
+              },
+              {
+                "label": "跨境业务支持",
+                "text": "参与中国 eStore（基于 SAP Hybris）项目，负责电商模块与后端 ERP 系统对接及运营支持，解决跨地域业务数据同步问题"
+              },
+              {
+                "label": "报表与数据",
+                "text": "使用 Crystal Reports 开发定制业务报表，为管理层提供精准数据决策支持"
+              },
+              {
+                "label": "荣誉",
+                "text": "凭借项目出色表现与团队协作，荣获 2021 上半年 \"SDSC 优秀员工\" 团体奖"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "education": [
+      {
+        "school": "大连民族大学",
+        "period": "2013 — 2017",
+        "detail": "本科 · 电子信息工程"
+      }
+    ],
+    "honors": [
+      "2021 上半年 \"SDSC 优秀员工\" 团体奖（三星）",
+      "亚马逊 AWS Certified AI Practitioner 认证"
+    ],
+    "projects": [
+      {
+        "id": "baobao",
+        "title": "豹豹助手 · AI 知识助手",
+        "badge": "Vibe Coding",
+        "link": "https://zxz0608.com/",
+        "desc": "独立设计并开发的全栈 AI 知识助手应用，采用 AI 辅助开发（Vibe Coding）模式，从架构设计、前后端开发到部署上线全程独立完成。",
+        "items": [
+          "集成大模型能力，实现知识库智能问答与 Agent 多轮交互",
+          "将 AI 工具链融入开发流程，验证了 AI 辅助编程在实际项目中的落地价值",
+          "体现对 AI / 物联网领域的持续技术热情与独立交付能力"
+        ],
+        "stack": [
+          "LLM",
+          "Agent",
+          "全栈",
+          "Vibe Coding"
+        ]
+      }
+    ]
+  },
+  "versions": {
+    "ai": {
+      "label": "AI 开发",
+      "title": "AI 应用开发工程师",
+      "summary": "9 年世界 500 强（三星电子）IT 研发经验，兼具全栈开发功底与 AI 落地能力。持有 AWS Certified AI Practitioner 认证，独立搭建 AI 知识助手「豹豹助手」，擅长将大模型与 AI 工具融入实际业务，显著提升研发与交付效率。",
+      "advantages": [
+        {
+          "title": "AI 落地能力",
+          "text": "AWS Certified AI Practitioner 认证，独立搭建 AI 知识助手「豹豹助手」，将大模型能力融入实际业务场景，验证 AI 辅助开发落地价值。"
+        },
+        {
+          "title": "全栈开发",
+          "text": "独立完成 RMS 资源管理系统全生命周期开发（Java/ASP.Net + Vue.js + PostgreSQL），4.5 年持续迭代，服务三星内部用户。"
+        },
+        {
+          "title": "RPA 自动化",
+          "text": "基于 Brity Works 开发多个自动化机器人，覆盖各业务系统与 Excel 工作流，每年替代约 1400 小时人工操作（约 0.7 个全职人力）。"
+        },
+        {
+          "title": "技术热情与自驱",
+          "text": "保持对 AI / 物联网领域的持续关注，习惯通过独立项目（豹豹助手、小程序）验证新技术，技术敏锐度与自驱力强。"
+        }
+      ],
+      "featuredProject": "baobao"
+    },
+    "it": {
+      "label": "IT 技术支持",
+      "title": "IT 技术支持工程师",
+      "summary": "9 年世界 500 强（三星电子）IT 研发与运维经验，长期负责核心业务系统的开发、运维与稳定性保障。擅长系统故障排查、性能调优、自动化运维与跨部门技术支持，保障业务系统稳定运行。",
+      "advantages": [
+        {
+          "title": "系统运维与稳定性",
+          "text": "长期负责 RMS 核心系统运维，PostgreSQL 性能调优，保障高并发场景下系统稳定运行，处理大量线上问题。"
+        },
+        {
+          "title": "自动化运维提效",
+          "text": "基于 Brity Works RPA 自动化各业务系统与 Excel 工作流，每年替代约 1400 小时人工操作，显著降低运维人力成本。"
+        },
+        {
+          "title": "全栈排障能力",
+          "text": "精通 Java/ASP.Net/Vue.js/PostgreSQL 全栈，能快速定位前后端、数据库各层问题，独立解决复杂故障。"
+        },
+        {
+          "title": "跨部门协作",
+          "text": "在三星跨部门协作中把控进度与质量，负责技术支持与需求对接，确保业务问题按时高质量解决。"
+        }
+      ],
+      "featuredProject": "baobao"
+    },
+    "test": {
+      "label": "测试",
+      "title": "测试开发工程师",
+      "summary": "9 年世界 500 强（三星电子）研发经验，深度参与核心系统全生命周期，具备扎实的质量保障意识。擅长从开发视角理解系统，进行功能、性能与接口测试，通过数据库优化与自动化手段提升系统质量与稳定性。",
+      "advantages": [
+        {
+          "title": "质量保障意识",
+          "text": "4.5 年持续迭代 RMS 系统，注重代码质量与测试覆盖，通过索引优化与查询优化保障复杂报表准确性与性能。"
+        },
+        {
+          "title": "测试开发能力",
+          "text": "精通 Java/ASP.Net/Vue.js/PostgreSQL 全栈，能编写自动化测试脚本，从开发视角设计高质量测试用例。"
+        },
+        {
+          "title": "性能与稳定性",
+          "text": "负责 PostgreSQL 性能调优与系统稳定性保障，具备性能测试与瓶颈定位能力，保障高并发场景稳定。"
+        },
+        {
+          "title": "自动化提效",
+          "text": "基于 RPA 与脚本实现流程自动化，每年替代约 1400 小时人工操作，可迁移至自动化测试场景。"
+        }
+      ],
+      "featuredProject": "baobao"
+    },
+    "erp": {
+      "label": "ERP",
+      "title": "ERP 实施顾问",
+      "summary": "9 年世界 500 强（三星电子）IT 经验，主导 Next ERP 项目实施与管理，参与 SAP Hybris 电商项目，精通大型 ERP 系统业务支持与二次开发。擅长跨平台、跨系统复杂对接，具备项目管理与数据治理能力，保障企业级数据流高效稳定。",
+      "advantages": [
+        {
+          "title": "ERP 项目管理",
+          "text": "担任 Next ERP 项目经理，负责进度控制、资源协调与风险管理，确保项目按期平滑上线，获 2021 上半年 \"SDSC 优秀员工\"。"
+        },
+        {
+          "title": "复杂系统对接",
+          "text": "参与中国 eStore（SAP Hybris）项目，负责电商模块与 ERP 系统对接，解决跨地域业务数据同步等复杂问题。"
+        },
+        {
+          "title": "数据治理与报表",
+          "text": "使用 Crystal Reports 开发定制业务报表，负责 PostgreSQL 数据治理与性能调优，为管理层提供数据决策支持。"
+        },
+        {
+          "title": "全栈二次开发",
+          "text": "精通 Java/ASP.Net/Vue.js/ABAP，具备 ERP 二次开发与接口开发能力，能独立实现复杂业务需求。"
+        }
+      ],
+      "featuredProject": "baobao"
+    }
+  }
+}
