@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
-"""简历系统自动化测试 —— 测新功能(多版本/后台/API) + 核心功能(页面渲染) + 安全性(鉴权/隔离)
+"""简历系统 v1.1.0 自动化测试 —— 暖色五段式重设计 + 中英双语 + AI 岗位内容优化 + 管理后台修复
 用法: python test/test.py
-依赖: 仅用 Python 标准库 (urllib/http/subprocess)，无需安装第三方包"""
-import subprocess, sys, time, json, os, signal
+依赖: 仅 Python 标准库
+
+测试隔离: 将 server.js + data/ + public/ 复制到临时目录，在 3999 端口启动独立服务器。
+不触碰真实 data/ 目录，不影响用户 3000 端口生产服务。
+
+两支柱:
+  支柱 1 [核心回归] 多版本页面 / 数据 API / 鉴权 / 保存 / 头像上传 / 静态资源 / 404
+  支柱 2 [新功能]   逐条款 C1..C12 各至少一个用例
+"""
+import subprocess, sys, time, json, os, re, shutil, tempfile
 import urllib.request, urllib.error
 
 HOST = "127.0.0.1"
 PORT = 3999  # 测试用端口，避免冲突
 BASE = f"http://{HOST}:{PORT}"
 NODE = os.environ.get("NODE_EXE", "node")
-SERVER = os.path.join(os.path.dirname(__file__), "..", "server.js")
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 passed = 0
 failed = 0
 results = []
+core_failed = 0  # 核心回归段（C9）失败数快照
 
 def check(name, cond, detail=""):
     global passed, failed
@@ -24,142 +33,327 @@ def check(name, cond, detail=""):
         failed += 1
         results.append(f"  ✗ {name}  {detail}")
 
-def get(path, expect_code=None, headers=None):
-    url = BASE + path
-    req = urllib.request.Request(url, headers=headers or {})
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+OPENER = urllib.request.build_opener(NoRedirect)
+
+def get(path, headers=None):
+    req = urllib.request.Request(BASE + path, headers=headers or {})
     try:
-        resp = urllib.request.urlopen(req, timeout=5)
+        resp = OPENER.open(req, timeout=5)
         return resp.status, resp.read().decode("utf-8"), dict(resp.headers)
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode("utf-8"), dict(e.headers)
     except urllib.error.URLError as e:
         return 0, str(e), {}
 
+def get_bin(path):
+    try:
+        resp = OPENER.open(BASE + path, timeout=5)
+        return resp.status, resp.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()
+    except urllib.error.URLError:
+        return 0, b""
+
 def post(path, data, headers=None):
-    url = BASE + path
     body = json.dumps(data).encode("utf-8")
     h = {"Content-Type": "application/json"}
     if headers: h.update(headers)
-    req = urllib.request.Request(url, data=body, headers=h, method="POST")
+    req = urllib.request.Request(BASE + path, data=body, headers=h, method="POST")
     try:
-        resp = urllib.request.urlopen(req, timeout=5)
+        resp = OPENER.open(req, timeout=5)
         return resp.status, resp.read().decode("utf-8"), dict(resp.headers)
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode("utf-8"), dict(e.headers)
+    except urllib.error.URLError as e:
+        return 0, str(e), {}
+
+def wait_ready(proc, timeout=15):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            return False
+        code, _, _ = get("/api/data")
+        if code == 200:
+            return True
+        time.sleep(0.3)
+    return False
 
 def main():
-    # 修复 Windows 控制台编码
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
-    # 启动服务器
+
+    # ---- 临时目录隔离：复制 server.js + data/ + public/ ----
+    tmpdir = tempfile.mkdtemp(prefix="resume-test-")
+    shutil.copy2(os.path.join(ROOT, "server.js"), tmpdir)
+    shutil.copytree(os.path.join(ROOT, "data"), os.path.join(tmpdir, "data"))
+    shutil.copytree(os.path.join(ROOT, "public"), os.path.join(tmpdir, "public"))
+
     env = dict(os.environ)
     env["PORT"] = str(PORT)
     env["ADMIN_PASSWORD"] = "testpass123"
-    proc = subprocess.Popen([NODE, SERVER], env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=os.path.dirname(SERVER))
+    proc = subprocess.Popen([NODE, "server.js"], cwd=tmpdir, env=env,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     try:
-        time.sleep(2)  # 等待启动
-        if proc.poll() is not None:
+        if not wait_ready(proc):
             print("服务器启动失败:")
-            print(proc.stdout.read().decode("utf-8"))
+            print(proc.stdout.read().decode("utf-8", "replace"))
             sys.exit(1)
 
-        print("=" * 50)
-        print("简历系统自动化测试")
-        print("=" * 50)
+        print("=" * 56)
+        print("简历系统 v1.1.0 自动化测试（临时目录隔离 · 端口 3999）")
+        print("=" * 56)
 
-        # ---- 1. 核心功能：各版本页面 ----
-        print("\n[1] 各版本页面")
-        for v, title in [("ai","AI 应用开发工程师"),("it","IT 技术支持工程师"),("test","测试开发工程师"),("erp","ERP 实施顾问")]:
+        # ================= 支柱 1：核心功能回归 =================
+        # ---- [1] 多版本页面 ----
+        print("\n[1] 核心 · 多版本页面")
+        for v, title in [("ai","AI 应用开发工程师"),("it","IT 技术支持工程师"),
+                         ("test","测试开发工程师"),("erp","ERP 实施顾问")]:
             code, body, _ = get(f"/{v}")
             check(f"/{v} 返回200", code == 200, f"got {code}")
-            check(f"/{v} 含正确标题", title in body, "")
             check(f"/{v} 含数据注入", "window.RESUME" in body, "")
-            check(f"/{v} 无后台入口", "/admin" not in body and "admin.js" not in body, "泄露后台入口!")
+            check(f"/{v} versionKey 正确", f'"versionKey":"{v}"' in body, "")
+            check(f"/{v} 含正确职位", title in body, "")
+            check(f"/{v} 不泄露后台入口", "/admin" not in body and "admin.js" not in body, "泄露后台入口!")
 
-        # ---- 2. 根路径重定向 ----
-        print("\n[2] 根路径重定向")
         code, _, hdr = get("/")
-        check("/ 重定向到 /ai", code in (200, 301, 302) , f"got {code}")
+        check("/ 重定向到 /ai", code == 302 and hdr.get("Location") == "/ai", f"got {code} {hdr.get('Location')}")
 
-        # ---- 3. 管理后台页面 ----
-        print("\n[3] 管理后台")
-        code, body, _ = get("/admin")
-        check("/admin 返回200", code == 200, f"got {code}")
-        check("/admin 含后台脚本", "admin.js" in body, "")
-
-        # ---- 4. 数据 API ----
-        print("\n[4] 数据 API")
+        # ---- [2] 数据 API ----
+        print("\n[2] 核心 · 数据 API")
         code, body, _ = get("/api/data")
         check("/api/data 返回200", code == 200, f"got {code}")
-        try:
-            d = json.loads(body)
-            check("/api/data 含 base", "base" in d, "")
-            check("/api/data 含4个版本", len(d.get("versions", {})) == 4, f"got {len(d.get('versions',{}))}")
-            check("/api/data 版本key正确", set(d.get("versions",{}).keys()) == {"ai","it","test","erp"}, "")
-        except Exception as e:
-            check("/api/data JSON可解析", False, str(e))
+        d = json.loads(body)
+        check("/api/data 含 base", "base" in d, "")
+        check("/api/data 含4个版本", set(d.get("versions", {}).keys()) == {"ai","it","test","erp"},
+              f"got {set(d.get('versions', {}).keys())}")
+        check("/api/data 含 en（双语）", "en" in d and "base" in d["en"] and "versions" in d["en"], "")
 
-        # ---- 5. 鉴权：未登录状态 ----
-        print("\n[5] 鉴权 - 未登录")
+        # ---- [3] 静态资源 ----
+        print("\n[3] 核心 · 静态资源")
+        for f in ["/style.css", "/app.js", "/admin.css", "/admin.js",
+                  "/gsap.min.js", "/ScrollTrigger.min.js",
+                  "/fonts/jost-latin.woff2", "/img/portrait-cartoon.jpg"]:
+            code, raw = get_bin(f)
+            check(f"{f} 返回200", code == 200 and len(raw) > 0, f"got {code} size={len(raw)}")
+        code, raw = get_bin("/not-exist-page")
+        check("未知路径返回404", code == 404, f"got {code}")
+
+        # ---- [4] 鉴权 + 保存 + 头像上传 ----
+        print("\n[4] 核心 · 鉴权 / 保存 / 头像上传")
         code, body, _ = get("/api/check")
-        check("/api/check 未登录返回authed=false", '"authed":false' in body or '"authed": false' in body, body[:80])
-
-        code, body, _ = post("/api/save", {"base": {}, "versions": {}})
+        check("/api/check 未登录 authed=false", '"authed":false' in body, body[:80])
+        code, _, _ = post("/api/save", {"base": {}, "versions": {}})
         check("/api/save 未登录拒绝(401)", code == 401, f"got {code}")
-
-        # ---- 6. 鉴权：错误密码 ----
-        print("\n[6] 鉴权 - 错误密码")
-        code, body, _ = post("/api/login", {"password": "wrong"})
+        code, _, _ = post("/api/login", {"password": "wrong"})
         check("/api/login 错误密码拒绝(401)", code == 401, f"got {code}")
-
-        # ---- 7. 鉴权：正确密码 + 保存 ----
-        print("\n[7] 鉴权 - 正确密码 + 保存")
-        code, body, hdr = post("/api/login", {"password": "testpass123"})
+        code, _, hdr = post("/api/login", {"password": "testpass123"})
         check("/api/login 正确密码成功(200)", code == 200, f"got {code}")
         cookie = hdr.get("Set-Cookie", "")
-        check("/api/login 返回cookie", "resume_session=" in cookie, "无cookie")
         sess = cookie.split(";")[0] if cookie else ""
+        check("/api/login 返回会话cookie", "resume_session=" in sess, "无cookie")
 
-        # 用会话保存数据（先读再改一个字段再存）
+        # 保存往返（临时副本，安全）
         code, body, _ = get("/api/data")
         d = json.loads(body)
         orig_name = d["base"]["name"]
         d["base"]["name"] = "测试临时名"
-        code, body, _ = post("/api/save", d, {"Cookie": sess})
+        code, _, _ = post("/api/save", d, {"Cookie": sess})
         check("/api/save 登录后成功(200)", code == 200, f"got {code}")
-        # 验证保存生效
         code, body, _ = get("/api/data")
         d2 = json.loads(body)
         check("/api/save 数据已更新", d2["base"]["name"] == "测试临时名", d2["base"]["name"])
-        # 恢复原数据
         d2["base"]["name"] = orig_name
         post("/api/save", d2, {"Cookie": sess})
-        check("/api/save 恢复原数据", True)
+        code, body, _ = get("/api/data")
+        check("/api/save 恢复原数据", json.loads(body)["base"]["name"] == orig_name, "")
 
-        # ---- 8. 静态文件 ----
-        print("\n[8] 静态文件")
-        for f in ["/style.css", "/app.js"]:
-            code, body, _ = get(f)
-            check(f"{f} 返回200", code == 200, f"got {code}")
+        # 头像上传
+        png1x1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+        code, _, _ = post("/api/upload", {"data": "data:image/png;base64," + png1x1})
+        check("/api/upload 未登录拒绝(401)", code == 401, f"got {code}")
+        code, _, _ = post("/api/upload", {"data": "not-an-image"}, {"Cookie": sess})
+        check("/api/upload 非图片拒绝(400)", code == 400, f"got {code}")
+        code, body, _ = post("/api/upload", {"data": "data:image/png;base64," + png1x1}, {"Cookie": sess})
+        up = json.loads(body)
+        check("/api/upload 登录后成功(200)", code == 200 and up.get("ok"), body[:80])
+        up_path = up.get("path", "")
+        code, raw = get_bin(up_path)
+        check(f"上传文件可访问 {up_path}", code == 200 and raw[:4] == b"\x89PNG", f"got {code}")
 
-        # ---- 9. 404 ----
-        print("\n[9] 404")
-        code, _, _ = get("/not-exist-page")
-        check("未知路径返回404", code == 404, f"got {code}")
+        code, _, _ = post("/api/logout", {}, {"Cookie": sess})
+        check("/api/logout 成功(200)", code == 200, f"got {code}")
+        code, body, _ = get("/api/check", {"Cookie": sess})
+        check("登出后会话失效", '"authed":false' in body, body[:80])
+
+        core_failed = failed  # 核心回归失败数快照（供 C9 引用）
+
+        # ================= 支柱 2：新功能逐条款 =================
+        code, css, _ = get("/style.css")
+        code, app_src, _ = get("/app.js")
+        code, idx_html, _ = get("/ai")
+        code, admin_html, _ = get("/admin")
+        code, admin_css, _ = get("/admin.css")
+        code, admin_js, _ = get("/admin.js")
+        code, body, _ = get("/api/data")
+        d = json.loads(body)
+
+        # ---- C1 暖色配色（无红色）----
+        print("\n[C1] 暖色配色（无红色）")
+        check("C1 暖色 token 齐全", all(t in css for t in ["#faf5ec", "#e08a3c", "#3d3529", "#f1e7d3"]), "")
+        hex_colors = re.findall(r'#([0-9a-fA-F]{6})', css)
+        def hue_of(r, g, b):
+            mx, mn = max(r,g,b), min(r,g,b)
+            if mx == mn: return 0.0
+            d = mx - mn
+            if mx == r: h = ((g-b)/d) % 6
+            elif mx == g: h = (b-r)/d + 2
+            else: h = (r-g)/d + 4
+            return h * 60
+        red_found = []
+        for hx in hex_colors:
+            r, g, b = int(hx[0:2],16), int(hx[2:4],16), int(hx[4:6],16)
+            mx, mn = max(r,g,b), min(r,g,b)
+            sat = (mx-mn)/mx if mx > 0 else 0
+            h = hue_of(r,g,b)
+            # 红色 = 色相 0-15° 或 345-360° 且饱和度>30%（暖棕/琥珀色相 20-50° 不算红）
+            if sat > 0.3 and (h <= 15 or h >= 345):
+                red_found.append('#'+hx)
+        check("C1 style.css 无红色系色值", len(red_found) == 0, f"发现红色: {red_found[:5]}")
+        check("C1 favicon 为琥珀色", "e08a3c" in idx_html, "")
+
+        # ---- C2 卡通人像 + PC 满宽（模糊背景+清晰前景）----
+        print("\n[C2] 卡通人像 + PC 满宽处理")
+        code, raw = get_bin("/img/portrait-cartoon.jpg")
+        check("C2 卡通人像 JPEG 存在", code == 200 and raw[:3] == b"\xff\xd8\xff" and len(raw) > 10_000,
+              f"got {code} size={len(raw)}")
+        check("C2 app.js 引用卡通人像", "portrait-cartoon.jpg" in app_src, "")
+        check("C2 hero-bg 模糊处理", "blur(" in css, "无 blur")
+        check("C2 hero-bg 边缘外溢(-40px)", "-40px" in css, "无边缘外溢，PC 会有硬边")
+        check("C2 hero-veil 奶油色遮罩", ".hero-veil" in css, "")
+
+        # ---- C3 五段式结构 ----
+        print("\n[C3] 五段式结构（封面/履历/技能展示/项目/页脚）")
+        for fn, label in [("function hero(", "①头图封面"), ("function history(", "②个人履历"),
+                          ("function skills(", "③技能展示"), ("function projects(", "④项目展示"),
+                          ("function footer(", "⑤结尾页脚")]:
+            check(f"C3 app.js 含{label}渲染器", fn in app_src, "")
+        check("C3 index.html 加载 app.js", "app.js" in idx_html, "")
+        check("C3 第③段标题为「技能展示」/Skill Showcase", "技能展示" in app_src and "Skill Showcase" in app_src, "")
+
+        # ---- C4 个人履历时间线 ----
+        print("\n[C4] 个人履历（时间线 + 量化成果）")
+        exp = d["base"].get("experience", [])
+        check("C4 履历数据非空", len(exp) >= 1, f"got {len(exp)}")
+        check("C4 每段履历含 role/company/period/projects",
+              all(all(k in e for k in ("role","company","period","projects")) for e in exp), "")
+        check("C4 app.js 渲染时间线", all(t in app_src for t in ["tl-item","tl-card","tl-proj"]), "")
+        check("C4 app.js 含量化成果 1400h", "1400h" in app_src, "")
+        def norm(s): return re.sub(r"\s+", "", s)
+        certs_n = [norm(c) for c in d["base"].get("certs", [])]
+        honors_n = [norm(h) for h in d["base"].get("honors", [])]
+        dup = [c for c in certs_n for h in honors_n if c in h or h in c]
+        check("C4 资格证书与荣誉无重复", len(dup) == 0, f"重复: {dup}")
+        titles = {v: d["versions"][v]["title"] for v in ("ai","it","test","erp")}
+        check("C4 四版本职位互不相同", len(set(titles.values())) == 4, str(titles))
+
+        # ---- C5 技能展示（技能图标悬浮物）----
+        print("\n[C5] 技能展示（技能图标悬浮物）")
+        skills = d["base"].get("skills", {})
+        all_skill_names = [n for group in skills.values() for n in group]
+        check("C5 技能数 >=12", len(all_skill_names) >= 12, f"got {len(all_skill_names)}")
+        missing_icons = [n for n in all_skill_names if f"'{n}':" not in app_src]
+        check("C5 每个技能均有专属图标", len(missing_icons) == 0, f"缺图标: {missing_icons}")
+        check("C5 GSAP 悬浮动效(yoyo+sine.inOut)", "yoyo" in app_src and "sine.inOut" in app_src, "")
+        check("C5 悬浮作用于 skill-badge", "skill-badge" in app_src, "")
+        check("C5 浮动幅度 3–5px", "y: -(3 + (i % 3) * 1)" in app_src, "幅度未降为 3–5px")
+        check("C5 网格间距 22px > 浮动幅度（动画不重合）", "gap: 22px" in css, "")
+
+        # ---- C6 豹豹助手 5 项已验证功能 ----
+        print("\n[C6] 豹豹助手（zxz0608.com 已验证功能）")
+        bb = d["base"]["projects"][0]
+        check("C6 主打项目为豹豹助手", bb.get("id") == "baobao" and "豹豹助手" in bb["title"], bb.get("title"))
+        check("C6 中文 5 项功能", len(bb.get("items", [])) == 5, f"got {len(bb.get('items', []))}")
+        zh_items = "".join(bb.get("items", []))
+        check("C6 中文功能覆盖 对话/新闻/项目/日历/智能家居",
+              all(k in zh_items for k in ("对话","新闻","项目","日历","智能家居")), "")
+        check("C6 链接为 zxz0608.com", bb.get("link") == "https://zxz0608.com/", bb.get("link"))
+        en_bb = d["en"]["base"]["projects"][0]
+        check("C6 英文 5 项功能", len(en_bb.get("items", [])) == 5, f"got {len(en_bb.get('items', []))}")
+        en_items = "".join(en_bb.get("items", [])).lower()
+        check("C6 英文功能覆盖 Chat/News/Kanban/Calendar/Smart Home",
+              all(k in en_items for k in ("chat","news","kanban","calendar","smart home")), "")
+
+        # ---- C7 结尾页脚 ----
+        print("\n[C7] 结尾页脚")
+        check("C7 页脚含联系方式(tel/mailto)", "tel:" in app_src and "mailto:" in app_src, "")
+        check("C7 页脚含头像与收尾语", "footer-avatar" in app_src and "footer-sentence" in app_src, "")
+        check("C7 无「联系我」按钮", "btn primary" not in app_src and "tb-cta" not in app_src, "仍存在联系我按钮")
+
+        # ---- C8 管理后台修复 ----
+        print("\n[C8] 管理后台（碎片化修复回归）")
+        check("C8 /admin 返回200", code == 200, f"got {code}")
+        check("C8 /admin 引用 admin.js + admin.css", "admin.js" in admin_html and "admin.css" in admin_html, "")
+        check("C8 /admin 不引用简历 style.css", "/style.css" not in admin_html, "")
+        check("C8 admin.css 含登录卡片+表单网格", "login-box" in admin_css and "form-grid" in admin_css, "")
+
+        # ---- C9 核心功能回归汇总 ----
+        print("\n[C9] 核心功能回归汇总")
+        check("C9 核心回归全部通过", core_failed == 0, f"核心段已有 {core_failed} 个失败")
+
+        # ---- C10 GSAP 动效层 ----
+        print("\n[C10] GSAP 动效层")
+        check("C10 index.html 引用 gsap + ScrollTrigger", "gsap.min.js" in idx_html and "ScrollTrigger.min.js" in idx_html, "")
+        # 防火墙大文件对策：gsap/ScrollTrigger 以 .gz 入库，服务器启动时解压为 .js
+        check("C10 gsap.min.js.gz 在库中(防火墙对策)", os.path.exists(os.path.join(ROOT, "public", "gsap.min.js.gz")), "")
+        check("C10 ScrollTrigger.min.js.gz 在库中(防火墙对策)", os.path.exists(os.path.join(ROOT, "public", "ScrollTrigger.min.js.gz")), "")
+        code_g, raw_g = get_bin("/gsap.min.js")
+        check("C10 gsap.min.js 解压后正常服务", code_g == 200 and len(raw_g) > 50_000 and b"gsap" in raw_g.lower(),
+              f"got {code_g} size={len(raw_g)}")
+        check("C10 app.js 用 gsap.matchMedia", "gsap.matchMedia" in app_src, "")
+        check("C10 app.js 尊重 prefers-reduced-motion", "prefers-reduced-motion" in app_src, "")
+        check("C10 重渲染前清理动画", "ScrollTrigger.getAll" in app_src and "killTweensOf" in app_src, "")
+
+        # ---- C11 三端适配 + 打印 ----
+        print("\n[C11] 三端适配（1440/768/390）+ 打印")
+        check("C11 断点 1000px", "1000px" in css, "")
+        check("C11 断点 760px", "760px" in css, "")
+        check("C11 断点 560px", "560px" in css, "")
+        check("C11 打印样式", "@media print" in css, "")
+
+        # ---- C12 中英双语 ----
+        print("\n[C12] 中英双语（默认中文 + 一键切换）")
+        en = d.get("en", {})
+        check("C12 resume.json 顶层 en 含 base+4版本",
+              "base" in en and set(en.get("versions", {}).keys()) == {"ai","it","test","erp"}, "")
+        check("C12 英文姓名/职位", en.get("base",{}).get("name") == "Zhao Xianzhe"
+              and en.get("versions",{}).get("ai",{}).get("title") == "AI Application Development Engineer", "")
+        check("C12 /ai 页面 payload 含 en", '"en":' in idx_html, "")
+        check("C12 app.js 含语言切换按钮", "langBtn" in app_src, "")
+        check("C12 app.js 含回退函数 fb()", "function fb(" in app_src, "en 缺失时不回退中文")
+        check("C12 app.js 更新 html lang 属性", "documentElement.lang" in app_src, "")
+        check("C12 index.html 无外部字体/资源", "fontshare" not in idx_html
+              and not re.search(r'<link[^>]+href="https?://', idx_html), "存在外链资源")
+        check("C12 管理后台保持中文（无语言切换）", "langBtn" not in admin_js, "")
 
         # ---- 汇总 ----
-        print("\n" + "=" * 50)
+        print("\n" + "=" * 56)
         for r in results: print(r)
-        print("=" * 50)
+        print("=" * 56)
         print(f"通过: {passed}   失败: {failed}   总计: {passed+failed}")
-        print("=" * 50)
+        print("=" * 56)
     finally:
         proc.terminate()
-        try: proc.wait(timeout=3)
-        except: proc.kill()
+        try:
+            proc.wait(timeout=3)
+        except Exception:
+            proc.kill()
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
     sys.exit(0 if failed == 0 else 1)
 

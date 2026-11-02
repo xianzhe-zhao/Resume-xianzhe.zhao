@@ -17,3 +17,6 @@ Thumbs.db
 
 # 涓婁紶宸ュ叿锛堜竴娆℃�э紝涓嶅叆搴擄級
 push-via-api.js
+
+# 大文件预览图（防火墙按大小拦截，不入库）
+preview.png

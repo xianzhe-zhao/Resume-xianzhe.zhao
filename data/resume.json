@@ -9,7 +9,6 @@
     "city": "北京",
     "workYears": "9 年",
     "certs": [
-      "亚马逊 AWS Certified AI Practitioner",
       "三星 SW 高级算法认证",
       "计算机二级"
     ],
@@ -126,20 +125,66 @@
     "projects": [
       {
         "id": "baobao",
-        "title": "豹豹助手 · AI 知识助手",
-        "badge": "Vibe Coding",
+        "title": "豹豹助手 · 个人 AI 助手平台",
+        "badge": "独立开发",
         "link": "https://zxz0608.com/",
-        "desc": "独立设计并开发的全栈 AI 知识助手应用，采用 AI 辅助开发（Vibe Coding）模式，从架构设计、前后端开发到部署上线全程独立完成。",
+        "desc": "独立在家开发并部署在个人电脑的多功能个人 AI 助手，以卡通海豹为品牌形象。不止于对话，集成 AI 新闻、项目管理、日历日程、智能家居控制于一体，覆盖日常生活全场景。零 CDN 依赖，纯离线可运行。",
         "items": [
-          "集成大模型能力，实现知识库智能问答与 Agent 多轮交互",
-          "将 AI 工具链融入开发流程，验证了 AI 辅助编程在实际项目中的落地价值",
-          "体现对 AI / 物联网领域的持续技术热情与独立交付能力"
+          "AI 对话：多轮会话 + 附件 + 会话分支 + 反馈，多模型切换 + Agent 工具调用 + SSE 流式输出 + pgvector 长期记忆",
+          "豹豹新闻：聚合 2150+ 篇科技文章，多源采集 + 分类浏览 + 高亮摘要",
+          "项目管理：看板式任务管理（项目/列表/卡片三级结构），类似个人版 Trello",
+          "日历日程：家庭日历 + 纪念日 + 年度重复，附 AI 每日问候（农历 + 天气 + 关怀语气）",
+          "智能家居：集成小米家居，支持空调/设备控制、房间管理、自动化与能耗建议"
         ],
         "stack": [
-          "LLM",
+          "Python",
+          "FastAPI",
+          "MySQL",
+          "PostgreSQL",
+          "pgvector",
           "Agent",
-          "全栈",
-          "Vibe Coding"
+          "IoT"
+        ]
+      },
+      {
+        "id": "aipro-bridge",
+        "title": "AiPro Bridge · API 桥接代理",
+        "badge": "独立开发",
+        "link": "",
+        "desc": "零依赖 Node.js 代理，将 OpenAI Responses API、Anthropic Messages API 和 OpenAI Chat Completions API 桥接到 Aipro Chat Completions API，让 Codex 桌面端、Claude Code 和 DSH 使用 Aipro 托管的模型。",
+        "items": [
+          "三种 API 格式互转（OpenAI / Anthropic / Chat Completions），流式实时逐字输出",
+          "Web 搜索本地拦截（多引擎回退：360→百度→Bing→Yahoo），零上游 LLM 调用",
+          "Knox SSO JWT 认证 + 自动 key 解析（CLI session > auth.json > 环境变量），401 自动重试",
+          "MCP 配置同步 + Codex 模型目录同步 + Windows 计划任务开机自启"
+        ],
+        "stack": [
+          "Node.js",
+          "零依赖",
+          "API桥接",
+          "MCP",
+          "SSE"
+        ]
+      },
+      {
+        "id": "deskshare",
+        "title": "Deskshare · 实时协作文档平台",
+        "badge": "独立开发",
+        "link": "",
+        "desc": "类飞书的多人实时协作文档平台：富文本编辑 + Yjs CRDT 协同 + AI 辅助改写 + Word 导出。三服务架构（Python 网关 + Node.js 协同服务 + Vue3 前端）。",
+        "items": [
+          "Yjs CRDT 实时协同 + Hocuspocus WebSocket 服务，MySQL 增量+快照持久化",
+          "TipTap v3 富文本编辑器 + y-indexeddb 本地缓存，支持离线编辑",
+          "AI 辅助改写（接入 Aipro API）+ python-docx Word 导出",
+          "FastAPI 网关（认证 + 文档 CRUD + 用户管理）+ 一键 start/stop 脚本"
+        ],
+        "stack": [
+          "Python",
+          "FastAPI",
+          "Vue3",
+          "Yjs",
+          "TipTap",
+          "WebSocket"
         ]
       }
     ]
@@ -148,11 +193,11 @@
     "ai": {
       "label": "AI 开发",
       "title": "AI 应用开发工程师",
-      "summary": "9 年世界 500 强（三星电子）IT 研发经验，兼具全栈开发功底与 AI 落地能力。持有 AWS Certified AI Practitioner 认证，独立搭建 AI 知识助手「豹豹助手」，擅长将大模型与 AI 工具融入实际业务，显著提升研发与交付效率。",
+      "summary": "9 年世界 500 强（三星电子）IT 研发经验，兼具全栈开发功底与 AI 落地能力。持有 AWS Certified AI Practitioner 认证，独立在家开发并部署多功能个人 AI 助手「豹豹助手」（AI 对话 + 新闻 + 项目管理 + 日历 + 智能家居控制），另独立开发 API 桥接代理与协作文档平台，擅长将大模型与 AI 工具融入实际生活与业务。",
       "advantages": [
         {
           "title": "AI 落地能力",
-          "text": "AWS Certified AI Practitioner 认证，独立搭建 AI 知识助手「豹豹助手」，将大模型能力融入实际业务场景，验证 AI 辅助开发落地价值。"
+          "text": "AWS Certified AI Practitioner 认证，独立开发多功能个人 AI 助手「豹豹助手」，集成 AI 对话、新闻聚合、项目管理、日历、智能家居控制于一体，将大模型能力融入日常生活全场景。"
         },
         {
           "title": "全栈开发",
@@ -164,7 +209,7 @@
         },
         {
           "title": "技术热情与自驱",
-          "text": "保持对 AI / 物联网领域的持续关注，习惯通过独立项目（豹豹助手、小程序）验证新技术，技术敏锐度与自驱力强。"
+          "text": "业余独立开发 3 个完整项目（个人 AI 助手、API 桥接代理、协作文档平台），覆盖 Python/Node.js/Vue 全栈与 IoT 智能家居，保持对 AI 领域的持续探索。"
         }
       ],
       "featuredProject": "baobao"
@@ -240,6 +285,296 @@
         }
       ],
       "featuredProject": "baobao"
+    }
+  },
+  "en": {
+    "base": {
+      "name": "Zhao Xianzhe",
+      "gender": "Male",
+      "age": "32",
+      "phone": "17614336834",
+      "wechat": "17614336834",
+      "email": "971554652@qq.com",
+      "city": "Beijing",
+      "workYears": "9 years",
+      "certs": [
+        "Samsung SW Senior Algorithm Certification",
+        "National Computer Rank Examination Level 2"
+      ],
+      "skills": {
+        "Backend": [
+          "Java",
+          "ASP.Net",
+          "ABAP",
+          "REST API",
+          "JWT"
+        ],
+        "Frontend": [
+          "Vue.js",
+          "JavaScript",
+          "Mini Programs"
+        ],
+        "Database / Automation": [
+          "PostgreSQL",
+          "Brity Works RPA"
+        ],
+        "ERP / Reporting": [
+          "SAP Hybris",
+          "Next ERP",
+          "Crystal Reports"
+        ],
+        "AI / Cloud / Systems": [
+          "AWS",
+          "LLM / Agent",
+          "Linux"
+        ]
+      },
+      "experience": [
+        {
+          "company": "Samsung Data Systems (China) Co., Ltd.",
+          "role": "Development & Operations Engineer",
+          "period": "Jan 2019 — Present",
+          "projects": [
+            {
+              "title": "RMS Full-Stack Development & Operations",
+              "period": "Jan 2020 — Present",
+              "items": [
+                {
+                  "label": "Core System R&D",
+                  "text": "Led the full lifecycle development of the company's core RMS (Resource Management System), covering backend (Java/ASP.Net) to frontend (Vue.js) full-stack implementation, ensuring stable operation under high concurrency"
+                },
+                {
+                  "label": "Architecture & APIs",
+                  "text": "Designed and maintained RESTful API microservice interfaces with JWT-based authentication and permission management, achieving efficient frontend-backend separation and data exchange"
+                },
+                {
+                  "label": "Database Optimization",
+                  "text": "Owned PostgreSQL daily operations and performance tuning; significantly improved complex report generation speed through index and query optimization"
+                },
+                {
+                  "label": "Continuous Iteration",
+                  "text": "4.5 years of continuous business requirement response and feature iteration; the system serves internal Samsung users and keeps critical business operations running smoothly"
+                }
+              ]
+            },
+            {
+              "title": "Enterprise Automation & Digital Transformation (RPA)",
+              "period": "Jan 2020 — Present",
+              "items": [
+                {
+                  "label": "Process Automation",
+                  "text": "Based on the Brity Works RPA platform, analyzed business process pain points in depth and designed multiple automation bots, replacing manual, error-prone data entry and reconciliation"
+                },
+                {
+                  "label": "Script Development",
+                  "text": "Wrote complex custom JavaScript scripts to handle special business logic that standard components cannot cover, extending the automation toolset"
+                },
+                {
+                  "label": "Efficiency Gains",
+                  "text": "Covers Samsung business systems and Excel workflows; automatically replaces about 1,400 hours of repetitive manual work per year (≈ 0.7 FTE)"
+                }
+              ]
+            },
+            {
+              "title": "ERP Project Delivery & Management",
+              "period": "Apr 2021 — Present",
+              "items": [
+                {
+                  "label": "Project Leadership",
+                  "text": "Served as Next ERP project manager, responsible for schedule control, resource coordination and risk management, ensuring on-time go-live"
+                },
+                {
+                  "label": "Cross-border Business Support",
+                  "text": "Participated in the China eStore project (based on SAP Hybris), responsible for e-commerce module and backend ERP integration and operational support, resolving cross-region data synchronization issues"
+                },
+                {
+                  "label": "Reporting & Data",
+                  "text": "Developed custom business reports with Crystal Reports, providing management with accurate data for decision-making"
+                },
+                {
+                  "label": "Recognition",
+                  "text": "Awarded the 2021 H1 'SDSC Outstanding Employee' team award for outstanding project delivery and collaboration"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "education": [
+        {
+          "school": "Dalian Minzu University",
+          "period": "2013 — 2017",
+          "detail": "B.Eng. · Electronic & Information Engineering"
+        }
+      ],
+      "honors": [
+        "2021 H1 'SDSC Outstanding Employee' team award (Samsung)",
+        "AWS Certified AI Practitioner (Amazon)"
+      ],
+      "projects": [
+        {
+          "id": "baobao",
+          "title": "Baobao Assistant · Personal AI Assistant Platform",
+          "badge": "Solo-built",
+          "link": "https://zxz0608.com/",
+          "desc": "A multi-functional personal AI assistant developed and deployed independently on a home PC, with a cartoon seal as its brand image. More than just chat — it integrates AI news, project management, calendar and smart home control, covering everyday life scenarios. Zero CDN dependencies, fully offline-capable.",
+          "items": [
+            "AI Chat: multi-turn conversations with attachments, conversation branching and feedback; multi-model switching + Agent tool calling + SSE streaming + pgvector long-term memory",
+            "Baobao News: aggregates 2,150+ tech articles with multi-source collection, categorization and highlighted summaries",
+            "Project Management: kanban-style tasks (Project / List / Card three-level structure), a personal Trello",
+            "Calendar: family calendar with anniversaries, yearly repeats and an AI daily greeting (lunar calendar + weather + caring tone)",
+            "Smart Home: Xiaomi integration — AC/device control, rooms, automations and energy-saving suggestions"
+          ],
+          "stack": [
+            "Python",
+            "FastAPI",
+            "MySQL",
+            "PostgreSQL",
+            "pgvector",
+            "Agent",
+            "IoT"
+          ]
+        },
+        {
+          "id": "aipro-bridge",
+          "title": "AiPro Bridge · API Bridging Proxy",
+          "badge": "Solo-built",
+          "link": "",
+          "desc": "A zero-dependency Node.js proxy that bridges the OpenAI Responses API, Anthropic Messages API and OpenAI Chat Completions API to the Aipro Chat Completions API, letting Codex desktop, Claude Code and DSH use Aipro-hosted models.",
+          "items": [
+            "Three API formats interconverted (OpenAI / Anthropic / Chat Completions) with real-time streaming output",
+            "Local web-search interception with multi-engine fallback (360 → Baidu → Bing → Yahoo), zero upstream LLM calls",
+            "Knox SSO JWT auth + automatic key resolution (CLI session > auth.json > env vars) with 401 auto-retry",
+            "MCP config sync + Codex model catalog sync + Windows Task Scheduler auto-start"
+          ],
+          "stack": [
+            "Node.js",
+            "Zero-dependency",
+            "API bridging",
+            "MCP",
+            "SSE"
+          ]
+        },
+        {
+          "id": "deskshare",
+          "title": "Deskshare · Real-time Collaborative Docs Platform",
+          "badge": "Solo-built",
+          "link": "",
+          "desc": "A Feishu-like real-time collaborative document platform: rich-text editing + Yjs CRDT collaboration + AI-assisted rewriting + Word export. Three-service architecture (Python gateway + Node.js collaboration service + Vue3 frontend).",
+          "items": [
+            "Yjs CRDT real-time collaboration + Hocuspocus WebSocket service, MySQL incremental + snapshot persistence",
+            "TipTap v3 rich-text editor + y-indexeddb local cache, offline editing supported",
+            "AI-assisted rewriting (Aipro API) + python-docx Word export",
+            "FastAPI gateway (auth + document CRUD + user management) + one-click start/stop scripts"
+          ],
+          "stack": [
+            "Python",
+            "FastAPI",
+            "Vue3",
+            "Yjs",
+            "TipTap",
+            "WebSocket"
+          ]
+        }
+      ]
+    },
+    "versions": {
+      "ai": {
+        "label": "AI",
+        "title": "AI Application Development Engineer",
+        "summary": "9 years of IT R&D at a Fortune 500 company (Samsung), combining full-stack development skills with AI implementation capability. AWS Certified AI Practitioner; independently developed and deployed the multi-functional personal AI assistant 'Baobao Assistant' (AI chat + news + project management + calendar + smart home control), plus a solo-built API bridging proxy and a collaborative docs platform. Skilled at integrating LLMs and AI tools into real life and business.",
+        "advantages": [
+          {
+            "title": "AI Implementation",
+            "text": "AWS Certified AI Practitioner; built the multi-functional personal AI assistant 'Baobao Assistant' integrating AI chat, news aggregation, project management, calendar and smart home control, bringing LLM capabilities into everyday scenarios."
+          },
+          {
+            "title": "Full-Stack Development",
+            "text": "Independently delivered the full lifecycle of the RMS resource management system (Java/ASP.Net + Vue.js + PostgreSQL), iterating for 4.5 years in service of internal Samsung users."
+          },
+          {
+            "title": "RPA Automation",
+            "text": "Built multiple automation bots on Brity Works covering business systems and Excel workflows, replacing about 1,400 hours of manual work per year (≈ 0.7 FTE)."
+          },
+          {
+            "title": "Passion & Self-Drive",
+            "text": "Three complete solo projects in spare time (personal AI assistant, API bridging proxy, collaborative docs platform) spanning Python/Node.js/Vue full-stack and IoT smart home, with continuous exploration of AI."
+          }
+        ],
+        "featuredProject": "baobao"
+      },
+      "it": {
+        "label": "IT",
+        "title": "IT Technical Support Engineer",
+        "summary": "9 years of IT R&D and operations at a Fortune 500 company (Samsung), long responsible for development, operations and stability of core business systems. Skilled in fault diagnosis, performance tuning, automated operations and cross-department technical support, keeping business systems running stably.",
+        "advantages": [
+          {
+            "title": "Operations & Stability",
+            "text": "Long-term ownership of RMS core system operations and PostgreSQL performance tuning, keeping the system stable under high concurrency and handling a large volume of production issues."
+          },
+          {
+            "title": "Automation Efficiency",
+            "text": "Automated business systems and Excel workflows with Brity Works RPA, replacing about 1,400 hours of manual work per year and significantly cutting ops labor cost."
+          },
+          {
+            "title": "Full-Stack Troubleshooting",
+            "text": "Proficient across the Java/ASP.Net/Vue.js/PostgreSQL full stack; quickly locates issues at frontend, backend and database layers and resolves complex faults independently."
+          },
+          {
+            "title": "Cross-Team Collaboration",
+            "text": "In Samsung's cross-department collaboration, controlled schedule and quality, owned technical support and requirement alignment, ensuring business issues were resolved on time and at high quality."
+          }
+        ],
+        "featuredProject": "baobao"
+      },
+      "test": {
+        "label": "Test",
+        "title": "Test Development Engineer",
+        "summary": "9 years of R&D at a Fortune 500 company (Samsung) with deep involvement in the full lifecycle of core systems and a solid quality-assurance mindset. Skilled at understanding systems from a developer's perspective to perform functional, performance and API testing, and improving system quality and stability through database optimization and automation.",
+        "advantages": [
+          {
+            "title": "Quality Mindset",
+            "text": "4.5 years of continuous RMS iteration with emphasis on code quality and test coverage; index and query optimization kept complex reports accurate and fast."
+          },
+          {
+            "title": "Test Development",
+            "text": "Proficient across the Java/ASP.Net/Vue.js/PostgreSQL full stack; writes automated test scripts and designs high-quality test cases from a developer's perspective."
+          },
+          {
+            "title": "Performance & Stability",
+            "text": "Owned PostgreSQL performance tuning and system stability, with performance testing and bottleneck localization skills for high-concurrency scenarios."
+          },
+          {
+            "title": "Automation Efficiency",
+            "text": "Delivered process automation with RPA and scripts, replacing about 1,400 hours of manual work per year — transferable to automated testing scenarios."
+          }
+        ],
+        "featuredProject": "baobao"
+      },
+      "erp": {
+        "label": "ERP",
+        "title": "ERP Implementation Consultant",
+        "summary": "9 years of IT experience at a Fortune 500 company (Samsung); led Next ERP project delivery and management and participated in the SAP Hybris e-commerce project. Proficient in business support and secondary development of large ERP systems, skilled at complex cross-platform integration, with project management and data governance skills to keep enterprise data flows efficient and stable.",
+        "advantages": [
+          {
+            "title": "ERP Project Management",
+            "text": "Served as Next ERP project manager owning schedule control, resource coordination and risk management; delivered on time and won the 2021 H1 'SDSC Outstanding Employee' award."
+          },
+          {
+            "title": "Complex System Integration",
+            "text": "Participated in the China eStore (SAP Hybris) project, integrating the e-commerce module with ERP and resolving complex issues such as cross-region data synchronization."
+          },
+          {
+            "title": "Data Governance & Reporting",
+            "text": "Built custom business reports with Crystal Reports; owned PostgreSQL data governance and performance tuning to support management decision-making."
+          },
+          {
+            "title": "Full-Stack Secondary Development",
+            "text": "Proficient in Java/ASP.Net/Vue.js/ABAP with ERP secondary development and API development skills, independently delivering complex business requirements."
+          }
+        ],
+        "featuredProject": "baobao"
+      }
     }
   }
 }
