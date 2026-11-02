@@ -5,6 +5,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const zlib = require('zlib');
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
@@ -41,13 +42,34 @@ function safeStatic(p) {
   const fp = path.join(PUBLIC_DIR, path.normalize(p).replace(/^(\.\.[/\\])+/, ''));
   return fp.startsWith(PUBLIC_DIR) && fs.existsSync(fp) && fs.statSync(fp).isFile() ? fp : null;
 }
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+
+/* ---------- 启动时解压 vendored 库（.gz -> .js） ----------
+   公司防火墙拦截 >35KB 的上传，gsap/ScrollTrigger 以 .gz 形式入库，
+   服务器启动时自动解压为 .js（已存在则跳过）。零依赖，仅用内置 zlib。 */
+function unpackVendored() {
+  let names;
+  try { names = fs.readdirSync(PUBLIC_DIR); } catch (e) { return; }
+  for (const name of names) {
+    if (!name.endsWith('.gz')) continue;
+    const gzPath = path.join(PUBLIC_DIR, name);
+    const outPath = path.join(PUBLIC_DIR, name.slice(0, -3));
+    if (fs.existsSync(outPath)) continue; // 已解压则跳过
+    try {
+      fs.writeFileSync(outPath, zlib.gunzipSync(fs.readFileSync(gzPath)));
+      console.log('[unpack] ' + name + ' -> ' + path.basename(outPath));
+    } catch (e) {
+      console.error('[unpack] 失败 ' + name + ': ' + e.message);
+    }
+  }
+}
+unpackVendored();
 
 /* ---------- 公共页面（注入数据）---------- */
 function servePublicPage(res, version) {
   const data = loadData();
   const realVer = data.versions[version] ? version : DEFAULT_VERSION;
-  const payload = JSON.stringify({ base: data.base, version: data.versions[realVer], versionKey: realVer, allVersions: Object.keys(data.versions) });
+  const payload = JSON.stringify({ base: data.base, version: data.versions[realVer], versionKey: realVer, allVersions: Object.keys(data.versions), en: data.en || null });
   let html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
   html = html.replace('/*__RESUME_DATA__*/', 'window.RESUME = ' + payload + ';');
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -90,6 +112,27 @@ const server = http.createServer(async function (req, res) {
     catch (e) { return sendJSON(res, 400, { ok: false, error: '数据格式错误: ' + e.message }); }
   }
 
+  // 头像上传（需登录）：接收 base64 图片，存到 public/uploads/，返回可访问路径
+  if (p === '/api/upload' && req.method === 'POST') {
+    if (!getSession(req)) return sendJSON(res, 401, { ok: false, error: '未登录' });
+    const body = await readBody(req);
+    try {
+      const obj = JSON.parse(body);
+      if (!obj.data || !obj.data.startsWith('data:image/')) return sendJSON(res, 400, { ok: false, error: '非图片数据' });
+      // 解析 data:image/png;base64,xxxx
+      const m = obj.data.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!m) return sendJSON(res, 400, { ok: false, error: '图片格式不支持' });
+      const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+      const buf = Buffer.from(m[2], 'base64');
+      if (buf.length > 2 * 1024 * 1024) return sendJSON(res, 400, { ok: false, error: '图片过大（限 2MB）' });
+      const uploadsDir = path.join(PUBLIC_DIR, 'uploads');
+      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+      const fname = 'avatar.' + ext;
+      fs.writeFileSync(path.join(uploadsDir, fname), buf);
+      return sendJSON(res, 200, { ok: true, path: '/uploads/' + fname });
+    } catch (e) { return sendJSON(res, 400, { ok: false, error: '上传失败: ' + e.message }); }
+  }
+
   // 页面路由
   if (p === '/') { res.writeHead(302, { Location: '/' + DEFAULT_VERSION }); return res.end(); }
   if (VERSIONS.includes(p.slice(1))) return servePublicPage(res, p.slice(1));
@@ -108,7 +151,7 @@ const server = http.createServer(async function (req, res) {
 });
 
 server.listen(PORT, function () {
-  console.log('简历系统运行在 http://localhost:' + PORT);
-  console.log('默认版本: /' + DEFAULT_VERSION + '   管理后台: /admin');
-  console.log('管理密码: ' + (ADMIN_PASSWORD === 'admin123' ? 'admin123 (默认，请用环境变量 ADMIN_PASSWORD 修改)' : '(已通过环境变量设置)'));
+  console.log('Resume server running at http://localhost:' + PORT);
+  console.log('Default: /' + DEFAULT_VERSION + '   Admin: /admin');
+  console.log('Password: ' + (ADMIN_PASSWORD === 'admin123' ? 'admin123 (default, change via ADMIN_PASSWORD env)' : '(set via env)'));
 });
