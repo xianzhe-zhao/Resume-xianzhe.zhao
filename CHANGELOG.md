@@ -2,6 +2,27 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 
+## [1.2.0] - 2026-11-05
+
+### 新增
+- **打印版式选择对话框**：点击「打印 / 存为 PDF」弹出居中对话框，可选竖版（A4 竖版 · 单列紧凑）或横版（A4 横版 · 双列宽版），各带方向示意图标；显著提示「在目标打印机中选择另存为 PDF 即可下载」；×/Esc/点遮罩关闭；中英双语文案
+- **打印版式模板**：`@page` A4 + 横竖版布局类（`html.print-portrait` / `html.print-landscape`），竖版单列（hero 单列人像居上、stats 2 列、技能 2 列、项目单列）、横版双列（hero 左文右图、stats 4 列、技能 4 列、项目 2 列）；版式类仅在 `@media print` 内生效，屏幕端零影响
+- **契约 spec**：`docs/specs/2026-11-02-print-pdf.md`（C13–C16 条款 + 验收清单 + 核销表）
+- **CDP 打印实测**：`test/cdp-print.mjs`（零依赖，Node 22+ 内置 WebSocket + 本机 Chrome/Edge），31 项断言覆盖对话框交互 + 打印媒体布局 + PDF 方向/页数
+
+### 修复
+- **多页打印动画残留**：GSAP 入场动画未触发时 DOM 残留内联 `opacity:0/visibility:hidden/transform`，打印预览第 2 页起内容不可见——`@media print` 内 `* { opacity:1 !important; visibility:visible !important; transform:none !important }` 纯 CSS 覆盖，不杀屏幕端动画
+- **打印暖色底丢失**：废除 v1.1.0 白底规则，打印保留屏幕暖色底（body 白底 + #app 奶油底 `#faf5ec` + 技能带 `#f1e7d3` + 卡片 `#fffdf8` + 深色页脚 `#3d3529`）；`print-color-adjust: exact` 保证未勾选「背景图形」时背景仍输出
+- **横版空白页**：RMS 履历块高 771px > A4 横版页高 718px，`break-inside: avoid` 把整块挤到下一页——改为 `.tl-item` 允许跨页（`.tl-proj` 子块不截断），`.sec-head-wrap` 不可拆分
+- **打印内容裁切**：打印引擎排版视口 = 屏幕窗口（1440px）而非 @page 内容区，内容按 1440px 排版远超 A4 宽度——钉死 body 宽度（竖版 178mm / 横版 265mm）+ section 子元素 `max-width: none`
+- **打印奶油色贴边**：body 背景传播到 canvas 填满 @page 无法内缩——body 改白底，奶油色移到 `#app`（非传播元素）+ `margin: 0 6mm`，纸边到奶油色 = 16mm @page + 6mm = 22mm 白色过渡带
+- **静态文件缓存**：server.js 静态文件加 `Cache-Control: no-cache` 头，避免打印 CSS 改动不生效
+
+### 测试
+- `test/test.py` 由 108 项扩充至 **138 项**：C13 对话框（8 断言）+ C14 动画覆盖（4 断言）+ C15 版式模板（17 断言）+ C16 核心回归（2 断言）
+- `test/cdp-print.mjs` **31 项**：真实 Chrome 对话框交互 + print 媒体布局 + printToPDF 方向/页数 + 无 JS 异常
+- `check_spec.py` 机器校验 PASS（0 错误 / 0 警告）
+
 ## [1.1.0] - 2026-11-01
 
 ### 新增

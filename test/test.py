@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""简历系统 v1.1.0 自动化测试 —— 暖色五段式重设计 + 中英双语 + AI 岗位内容优化 + 管理后台修复
+"""简历系统 v1.2.0 自动化测试 —— 暖色五段式重设计 + 中英双语 + 打印/PDF 流程重做
 用法: python test/test.py
 依赖: 仅 Python 标准库
 
@@ -8,7 +8,9 @@
 
 两支柱:
   支柱 1 [核心回归] 多版本页面 / 数据 API / 鉴权 / 保存 / 头像上传 / 静态资源 / 404
-  支柱 2 [新功能]   逐条款 C1..C12 各至少一个用例
+  支柱 2 [新功能]   逐条款 C1..C16 各至少一个用例
+                    （C13-C16: 打印版式对话框 / 多页打印修复 / 打印版式模板 / 核心回归）
+                    CDP 浏览器实测见 test/cdp-print.mjs（node test/cdp-print.mjs）
 """
 import subprocess, sys, time, json, os, re, shutil, tempfile
 import urllib.request, urllib.error
@@ -106,7 +108,7 @@ def main():
             sys.exit(1)
 
         print("=" * 56)
-        print("简历系统 v1.1.0 自动化测试（临时目录隔离 · 端口 3999）")
+        print("简历系统 v1.2.0 自动化测试（临时目录隔离 · 端口 3999）")
         print("=" * 56)
 
         # ================= 支柱 1：核心功能回归 =================
@@ -340,6 +342,71 @@ def main():
         check("C12 index.html 无外部字体/资源", "fontshare" not in idx_html
               and not re.search(r'<link[^>]+href="https?://', idx_html), "存在外链资源")
         check("C12 管理后台保持中文（无语言切换）", "langBtn" not in admin_js, "")
+
+        # ---- C13 打印版式选择对话框（横版/竖版）----
+        print("\n[C13] 打印版式选择对话框（横版/竖版）")
+        check("C13 app.js 含对话框渲染器", "printDialog" in app_src and "print-dialog" in app_src, "")
+        check("C13 对话框含竖版/横版选项", 'data-orient="portrait"' in app_src and 'data-orient="landscape"' in app_src, "")
+        check("C13 中文文案：选择打印版式/竖版/横版", "选择打印版式" in app_src and "竖版" in app_src and "横版" in app_src, "")
+        check("C13 英文文案：Choose print layout/Portrait/Landscape", "Choose print layout" in app_src and "Portrait" in app_src and "Landscape" in app_src, "")
+        check("C13 提示含「另存为 PDF」指引（zh+en）", "另存为 PDF" in app_src and "Save as PDF" in app_src, "")
+        check("C13 关闭路径：×/遮罩/Esc", "data-pd-close" in app_src and "Escape" in app_src, "")
+        check("C13 幂等打开（已打开不叠层）", "dialog.hidden) return" in app_src, "")
+        check("C13 style.css 含对话框样式", ".pd-card" in css and ".pd-opt" in css and ".pd-hint" in css, "")
+
+        # ---- C14 多页打印修复（动画残留不泄漏进打印）----
+        print("\n[C14] 多页打印修复（动画残留覆盖）")
+        print_block = css[css.index("@media print"):]
+        check("C14 print 媒体：opacity: 1 !important 覆盖", "opacity: 1 !important" in print_block, "")
+        check("C14 print 媒体：visibility: visible !important 覆盖", "visibility: visible !important" in print_block, "")
+        check("C14 print 媒体：transform: none !important 覆盖", "transform: none !important" in print_block, "")
+        check("C14 纯 CSS 覆盖（不清屏幕端动画状态）", "clearProps" not in app_src, "")
+
+        # ---- C15 打印版式模板（@page + 横竖版 + 分页规则 + 暖色底）----
+        print("\n[C15] 打印版式模板（@page A4 + 横竖版布局 + 分页规则 + 暖色底）")
+        check("C15 静态 @page A4 portrait 兜底", "@page" in css and "size: A4 portrait" in css and "margin: 16mm" in css, "")
+        check("C15 html.print-portrait 版式类（print 媒体内）", "html.print-portrait" in print_block, "")
+        check("C15 html.print-landscape 版式类（print 媒体内）", "html.print-landscape" in print_block, "")
+        check("C15 竖版单列：hero 1fr / stats 2列 / 技能 2列",
+              "html.print-portrait .hero-inner { grid-template-columns: 1fr" in css
+              and "html.print-portrait .stats { grid-template-columns: 1fr 1fr" in css
+              and "html.print-portrait .skill-grid { grid-template-columns: repeat(2, 1fr)" in css, "")
+        check("C15 横版双列：stats 4列 / 技能 4列 / 项目 2列",
+              "html.print-landscape .stats { grid-template-columns: repeat(4, 1fr)" in css
+              and "html.print-landscape .skill-grid { grid-template-columns: repeat(4, 1fr)" in css
+              and "html.print-landscape .proj-grid { grid-template-columns: 1fr 1fr" in css, "")
+        check("C15 分页规则：封面独占第 1 页（仅 .history break-before: page）",
+              ".history { break-before: page; }" in print_block
+              and ".skills, .projects, .footer { break-before: page" not in print_block, "")
+        check("C15 分页规则：标题块不拆分（.sec-head-wrap break-inside+break-after: avoid）",
+              ".sec-head-wrap { break-inside: avoid; break-after: avoid; }" in print_block, "")
+        check("C15 分页规则：小卡片不截断且 .tl-item 允许跨页（.tl-item 不在 avoid 列表）",
+              ".tl-proj, .proj, .stat, .eh-card, .skill-badge, .pf-text, .pf-side { break-inside: avoid; }" in print_block
+              and ".tl-item" not in ".tl-proj, .proj, .stat, .eh-card, .skill-badge, .pf-text, .pf-side", "")
+        check("C15 背景色：卡片/section 无白底覆盖（body 白底除外——用于奶油色内缩）",
+              ".stat { background: #fff" not in print_block and ".tl-card { background: #fff" not in print_block
+              and ".skill-badge { background: #fff" not in print_block, "")
+        check("C15 背景色：print-color-adjust: exact 保证暖色底输出",
+              "print-color-adjust: exact" in print_block and "-webkit-print-color-adjust: exact" in print_block, "")
+        check("C15 色带内边距：.skills 打印保留左右 padding（色带不被卡片占满）",
+              ".skills { padding: 40px 32px; }" in print_block, "")
+        check("C15 打印宽度钉死 + 奶油色内缩：body 白底 + #app 奶油底 margin 6mm",
+              "html.print-portrait body { width: 178mm" in print_block and "background: #fff !important;" in print_block
+              and "html.print-portrait #app { background: var(--bg); margin: 0 6mm; }" in print_block
+              and "html.print-landscape #app { background: var(--bg); margin: 0 6mm; }" in print_block, "")
+        check("C15 打印宽度重置：section 子元素 max-width 解除（填满 @page 内容区）",
+              "html.print-portrait .hero-inner, html.print-portrait .history > *" in print_block
+              and "max-width: none; width: 100%;" in print_block, "")
+        check("C15 app.js 动态注入 @page（横竖版）", "print-orient-style" in app_src and "@page { size: A4 " in app_src, "")
+        check("C15 afterprint 清理", "afterprint" in app_src, "")
+        check("C15 对话框打印时隐藏", ".print-dialog" in print_block, "")
+
+        # ---- C16 核心功能回归（不修坏）----
+        print("\n[C16] 核心功能回归（不修坏）")
+        check("C16 核心回归段全部通过", core_failed == 0, f"核心段已有 {core_failed} 个失败")
+        server_src = open(os.path.join(ROOT, "server.js"), encoding="utf-8").read()
+        check("C16 API 契约不变（6 端点）",
+              all(p in server_src for p in ["/api/data", "/api/login", "/api/logout", "/api/check", "/api/save", "/api/upload"]), "")
 
         # ---- 汇总 ----
         print("\n" + "=" * 56)

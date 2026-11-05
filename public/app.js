@@ -14,7 +14,18 @@
   /* ============ 文案字典（页面结构文案，非数据模型） ============ */
   var UI = {
     zh: {
-      print: '打印 / PDF',
+      print: '打印 / 存为 PDF',
+      printTip: '选择横版或竖版，在打印对话框中选择「另存为 PDF」即可下载。',
+      printDlgTitle: '选择打印版式',
+      printDlgSub: '页面支持三端展示，请选择 PDF 版式：',
+      printPortrait: '竖版',
+      printPortraitDesc: 'A4 竖版 · 单列紧凑',
+      printLandscape: '横版',
+      printLandscapeDesc: 'A4 横版 · 双列宽版',
+      printDlgHint1: '选择后打开系统打印对话框，在「目标打印机」中选择「',
+      printDlgHintKey: '另存为 PDF',
+      printDlgHint2: '」即可下载 PDF 文件。',
+      printDlgClose: '关闭',
       secHistory: '个人履历',
       historyNote: '从核心系统到 AI 落地，每一步都有据可查。',
       secSkills: '技能展示',
@@ -47,7 +58,18 @@
       ]
     },
     en: {
-      print: 'Print / PDF',
+      print: 'Print / Save as PDF',
+      printTip: 'Pick portrait or landscape, then choose "Save as PDF" in the print dialog.',
+      printDlgTitle: 'Choose print layout',
+      printDlgSub: 'The page adapts to 3 device widths — pick a PDF layout:',
+      printPortrait: 'Portrait',
+      printPortraitDesc: 'A4 portrait · compact single column',
+      printLandscape: 'Landscape',
+      printLandscapeDesc: 'A4 landscape · wide two columns',
+      printDlgHint1: 'After choosing, the print dialog opens. Under "Destination", select "',
+      printDlgHintKey: 'Save as PDF',
+      printDlgHint2: '" to download the PDF file.',
+      printDlgClose: 'Close',
       secHistory: 'Experience',
       historyNote: 'From core systems to AI in production — every step verifiable.',
       secSkills: 'Skill Showcase',
@@ -181,7 +203,7 @@
     chips.forEach(function (c) { s += '<span class="chip">' + esc(c) + '</span>'; });
     s += '</div>';
     s += '<div class="hero-actions">';
-    s += '<button class="btn ghost" id="printBtn">' + esc(ui.print) + '</button>';
+    s += '<button class="btn ghost" id="printBtn" title="' + esc(ui.printTip) + '">' + esc(ui.print) + '</button>';
     s += '</div></div>';
     s += '<div class="hero-portrait">';
     s += '<img class="hero-card" src="/img/portrait-cartoon.jpg" alt="' + alt + '">';
@@ -345,6 +367,65 @@
     return s;
   }
 
+  /* ============ 打印版式对话框（C13：横版/竖版选择 + 另存为 PDF 指引） ============ */
+  function printDialog(D) {
+    var ui = D.ui;
+    var s = '<div class="print-dialog" id="printDialog" hidden>';
+    s += '<div class="pd-overlay" data-pd-close></div>';
+    s += '<div class="pd-card" role="dialog" aria-modal="true" aria-label="' + esc(ui.printDlgTitle) + '">';
+    s += '<button class="pd-close" type="button" data-pd-close aria-label="' + esc(ui.printDlgClose) + '">&times;</button>';
+    s += '<h3 class="pd-title">' + esc(ui.printDlgTitle) + '</h3>';
+    s += '<p class="pd-sub">' + esc(ui.printDlgSub) + '</p>';
+    s += '<div class="pd-options">';
+    s += '<button class="pd-opt" type="button" data-orient="portrait">';
+    s += '<svg class="pd-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9 7.5h6M9 10.5h6M9 13.5h4"/></svg>';
+    s += '<span class="pd-opt-name">' + esc(ui.printPortrait) + '</span>';
+    s += '<span class="pd-opt-desc">' + esc(ui.printPortraitDesc) + '</span>';
+    s += '</button>';
+    s += '<button class="pd-opt" type="button" data-orient="landscape">';
+    s += '<svg class="pd-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M7 9.5h6M7 12.5h4"/></svg>';
+    s += '<span class="pd-opt-name">' + esc(ui.printLandscape) + '</span>';
+    s += '<span class="pd-opt-desc">' + esc(ui.printLandscapeDesc) + '</span>';
+    s += '</button>';
+    s += '</div>';
+    s += '<p class="pd-hint">' + esc(ui.printDlgHint1) + '<strong>' + esc(ui.printDlgHintKey) + '</strong>' + esc(ui.printDlgHint2) + '</p>';
+    s += '</div></div>';
+    return s;
+  }
+
+  function openPrintDialog() {
+    var dialog = document.getElementById('printDialog');
+    if (!dialog || !dialog.hidden) return; // 幂等：已打开不叠层
+    dialog.hidden = false;
+    document.body.classList.add('pd-open');
+  }
+  function closePrintDialog() {
+    var dialog = document.getElementById('printDialog');
+    if (!dialog || dialog.hidden) return;
+    dialog.hidden = true;
+    document.body.classList.remove('pd-open');
+  }
+  function choosePrintOrient(o) {
+    closePrintDialog();
+    /* 动态 @page：横竖版纸张方向（C15），打印结束 afterprint 清理 */
+    var st = document.getElementById('print-orient-style');
+    if (!st) {
+      st = document.createElement('style');
+      st.id = 'print-orient-style';
+      document.head.appendChild(st);
+    }
+    /* 动态 @page：横竖版纸张方向（C15），打印结束 afterprint 清理。
+       margin 16mm 给内容呼吸感（Chrome 打印预览「默认」边距尊重 CSS @page margin） */
+    st.textContent = '@page { size: A4 ' + o + '; margin: 16mm; }';
+    document.documentElement.className = 'print-' + o;
+    var cleanup = function () {
+      document.documentElement.className = '';
+      if (st) st.textContent = '';
+    };
+    window.addEventListener('afterprint', cleanup, { once: true });
+    window.print();
+  }
+
   /* ============ 组装与绑定 ============ */
   function killAnims() {
     if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
@@ -360,7 +441,17 @@
       render();
     });
     var printBtn = document.getElementById('printBtn');
-    if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
+    if (printBtn) printBtn.addEventListener('click', function () { openPrintDialog(); });
+    /* 打印版式对话框：关闭（×/遮罩）+ 选择横竖版（C13） */
+    var dialog = document.getElementById('printDialog');
+    if (dialog) {
+      dialog.querySelectorAll('[data-pd-close]').forEach(function (el) {
+        el.addEventListener('click', function () { closePrintDialog(); });
+      });
+      dialog.querySelectorAll('.pd-opt').forEach(function (el) {
+        el.addEventListener('click', function () { choosePrintOrient(el.getAttribute('data-orient')); });
+      });
+    }
     /* 图片 404 兜底：纯色块，不破版 */
     document.querySelectorAll('.hero-card, .footer-avatar').forEach(function (img) {
       img.addEventListener('error', function () { img.onerror = null; img.src = SOLID; });
@@ -426,10 +517,15 @@
     var D = dataFor();
     document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
     document.title = D.base.name + (lang === 'en' ? ' - Resume' : ' - 个人简历');
-    app.innerHTML = topbar(D) + hero(D) + '<main>' + history(D) + skills(D) + projects(D) + '</main>' + footer(D);
+    app.innerHTML = topbar(D) + hero(D) + '<main>' + history(D) + skills(D) + projects(D) + '</main>' + footer(D) + printDialog(D);
     bind(D);
     initAnims();
   }
+
+  /* Esc 关闭打印对话框（只绑定一次，重渲染不叠加） */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closePrintDialog();
+  });
 
   render();
 })();
