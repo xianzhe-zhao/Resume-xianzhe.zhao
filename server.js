@@ -142,9 +142,9 @@ const server = http.createServer(async function (req, res) {
     return res.end(html);
   }
 
-  // 静态文件
+  // 静态文件（Cache-Control: no-cache 确保浏览器每次验证，避免打印 CSS 改动不生效）
   const fp = safeStatic(p);
-  if (fp) { res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'application/octet-stream' }); return res.end(fs.readFileSync(fp)); }
+  if (fp) { res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }); return res.end(fs.readFileSync(fp)); }
 
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('404 Not Found');
