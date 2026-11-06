@@ -217,24 +217,24 @@ async function main() {
     check('C15 动态 @page A4 portrait 注入', pc1[0] && pc1[0].page.includes('A4 portrait'), JSON.stringify(pc1[0]));
     check('C13 选择后对话框关闭', (await page.eval(`document.getElementById('printDialog').hidden`)) === true);
 
-    // ---- C14/C15 模拟 print 媒体：动画残留覆盖 + 竖版单列布局 ----
+    // ---- C14/C15 模拟 print 媒体：动画残留覆盖 + 竖版单列布局（v1.3.0：8 区结构）----
     await page.send('Emulation.setEmulatedMedia', { media: 'print' });
     await sleep(300);
     const pcss = await page.eval(`(() => {
       const cs = getComputedStyle(document.querySelector('.skills .sec-head'));
       return { opacity: cs.opacity, visibility: cs.visibility, transform: cs.transform,
-               statsCols: getComputedStyle(document.querySelector('.stats')).gridTemplateColumns,
+               skillCardsCols: getComputedStyle(document.querySelector('.skill-cards')).gridTemplateColumns,
                heroCols: getComputedStyle(document.querySelector('.hero-inner')).gridTemplateColumns,
-               topbarDisplay: getComputedStyle(document.querySelector('.topbar')).display,
+               navbarDisplay: getComputedStyle(document.querySelector('.navbar')).display,
                bodyBg: getComputedStyle(document.body).backgroundColor,
                appBg: getComputedStyle(document.getElementById('app')).backgroundColor };
     })()`);
     check('C14 print 媒体：opacity 覆盖为 1', pcss.opacity === '1', pcss.opacity);
     check('C14 print 媒体：visibility=visible', pcss.visibility === 'visible', pcss.visibility);
     check('C14 print 媒体：transform=none', pcss.transform === 'none', pcss.transform);
-    check('C15 竖版：stats 2 列', pcss.statsCols.trim().split(/\s+/).length === 2, pcss.statsCols);
+    check('C15 竖版：技能卡片 2 列', pcss.skillCardsCols.trim().split(/\s+/).length === 2, pcss.skillCardsCols);
     check('C15 竖版：hero 单列', pcss.heroCols.trim().split(/\s+/).length === 1, pcss.heroCols);
-    check('C15 print：顶栏隐藏', pcss.topbarDisplay === 'none', pcss.topbarDisplay);
+    check('C15 print：导航栏隐藏', pcss.navbarDisplay === 'none', pcss.navbarDisplay);
     check('C15 竖版：body 白底 + #app 奶油底内缩', pcss.bodyBg === 'rgb(255, 255, 255)' && pcss.appBg === 'rgb(250, 245, 236)', 'body=' + pcss.bodyBg + ' app=' + pcss.appBg);
     await page.send('Emulation.setEmulatedMedia', { media: '' });
 
@@ -263,12 +263,12 @@ async function main() {
     await page.send('Emulation.setEmulatedMedia', { media: 'print' });
     await sleep(300);
     const pcss2 = await page.eval(`(() => ({
-      statsCols: getComputedStyle(document.querySelector('.stats')).gridTemplateColumns,
+      skillCardsCols: getComputedStyle(document.querySelector('.skill-cards')).gridTemplateColumns,
       heroCols: getComputedStyle(document.querySelector('.hero-inner')).gridTemplateColumns,
       bodyBg: getComputedStyle(document.body).backgroundColor,
       appBg: getComputedStyle(document.getElementById('app')).backgroundColor,
     }))()`);
-    check('C15 横版：stats 4 列', pcss2.statsCols.trim().split(/\s+/).length === 4, pcss2.statsCols);
+    check('C15 横版：技能卡片 3 列', pcss2.skillCardsCols.trim().split(/\s+/).length === 3, pcss2.skillCardsCols);
     check('C15 横版：hero 双列', pcss2.heroCols.trim().split(/\s+/).length === 2, pcss2.heroCols);
     check('C15 横版：body 白底 + #app 奶油底内缩', pcss2.bodyBg === 'rgb(255, 255, 255)' && pcss2.appBg === 'rgb(250, 245, 236)', 'body=' + pcss2.bodyBg + ' app=' + pcss2.appBg);
     await page.send('Emulation.setEmulatedMedia', { media: '' });

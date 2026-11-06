@@ -38,7 +38,7 @@ resume/
 │   ├── admin.html       # 管理后台页面
 │   ├── admin.js         # 后台逻辑（登录/编辑/分享/导出）
 │   └── style.css        # 共享样式
-├── test/test.py         # Python 自动化测试（138 项）
+├── test/test.py         # Python 自动化测试（237 项）
 ├── test/cdp-print.mjs   # 打印/存为 PDF 流程 CDP 实测（零依赖，31 项）
 ├── package.json
 └── CHANGELOG.md
@@ -60,11 +60,11 @@ resume/
 ## 测试
 
 ```bash
-python test/test.py      # 138 项自动化测试
+python test/test.py      # 237 项自动化测试
 node test/cdp-print.mjs  # 31 项打印/存为 PDF 流程 CDP 实测（需本机 Chrome/Edge）
 ```
 
-- **test.py**：各版本页面、数据 API、鉴权安全、保存功能、404、打印版式对话框与多页打印修复（C13–C16）。
+- **test.py**：各版本页面、数据 API、鉴权安全、保存功能、404、打印版式对话框与多页打印修复（C13–C16）、8 区编号式板块重构（C17–C26）、自动隐藏悬浮导航栏（C27）、移除公开页版本切换入口（C28）。
 - **cdp-print.mjs**：零依赖 CDP 实测——真实无头 Chrome 打开页面，验证对话框坐标、打印媒体下样式恢复、`Page.printToPDF` 输出 A4 横/竖版方向与页数。
 
 ## 部署到你的服务器
