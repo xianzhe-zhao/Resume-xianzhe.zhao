@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""简历系统 v1.2.0 自动化测试 —— 暖色五段式重设计 + 中英双语 + 打印/PDF 流程重做
+"""简历系统 v1.3.0 自动化测试 —— 暖色 8 区编号式重构 + 中英双语 + 打印/PDF
 用法: python test/test.py
 依赖: 仅 Python 标准库
 
@@ -8,8 +8,9 @@
 
 两支柱:
   支柱 1 [核心回归] 多版本页面 / 数据 API / 鉴权 / 保存 / 头像上传 / 静态资源 / 404
-  支柱 2 [新功能]   逐条款 C1..C16 各至少一个用例
-                    （C13-C16: 打印版式对话框 / 多页打印修复 / 打印版式模板 / 核心回归）
+  支柱 2 [新功能]   逐条款 C1..C26 各至少一个用例
+                    （C17-C26: 8 区编号式 / Hero 增强 / 关于我 / 工作经历 / 个人作品
+                      / 技能档案 / 教育荣誉 / 兴趣爱好 / SVG 占位 / 核心回归）
                     CDP 浏览器实测见 test/cdp-print.mjs（node test/cdp-print.mjs）
 """
 import subprocess, sys, time, json, os, re, shutil, tempfile
@@ -108,7 +109,7 @@ def main():
             sys.exit(1)
 
         print("=" * 56)
-        print("简历系统 v1.2.0 自动化测试（临时目录隔离 · 端口 3999）")
+        print("简历系统 v1.3.0 自动化测试（临时目录隔离 · 端口 3999）")
         print("=" * 56)
 
         # ================= 支柱 1：核心功能回归 =================
@@ -239,22 +240,23 @@ def main():
         check("C2 hero-bg 边缘外溢(-40px)", "-40px" in css, "无边缘外溢，PC 会有硬边")
         check("C2 hero-veil 奶油色遮罩", ".hero-veil" in css, "")
 
-        # ---- C3 五段式结构 ----
-        print("\n[C3] 五段式结构（封面/履历/技能展示/项目/页脚）")
-        for fn, label in [("function hero(", "①头图封面"), ("function history(", "②个人履历"),
-                          ("function skills(", "③技能展示"), ("function projects(", "④项目展示"),
-                          ("function footer(", "⑤结尾页脚")]:
+        # ---- C3 8 区编号式结构（v1.3.0 修订：5 段 → 8 区）----
+        print("\n[C3] 8 区编号式结构（Hero/About/Experience/Projects/Skills/Edu/Honors/OffDuty/Footer）")
+        for fn, label in [("function hero(", "①Hero头图"), ("function about(", "②00关于我"),
+                          ("function experience(", "③01工作经历"), ("function projects(", "④02个人作品"),
+                          ("function skills(", "⑤03技能档案"), ("function eduHonors(", "⑥04教育荣誉"),
+                          ("function offDuty(", "⑦05兴趣爱好"), ("function footer(", "⑧结尾页脚")]:
             check(f"C3 app.js 含{label}渲染器", fn in app_src, "")
         check("C3 index.html 加载 app.js", "app.js" in idx_html, "")
-        check("C3 第③段标题为「技能展示」/Skill Showcase", "技能展示" in app_src and "Skill Showcase" in app_src, "")
+        check("C3 第⑤段标题为「技能档案」/Skill Archive", "技能档案" in app_src and "Skill Archive" in app_src, "")
 
-        # ---- C4 个人履历时间线 ----
+        # ---- C4 个人履历时间线（v1.3.0：数据完整 + 量化成果，结构由 C20 覆盖）----
         print("\n[C4] 个人履历（时间线 + 量化成果）")
         exp = d["base"].get("experience", [])
         check("C4 履历数据非空", len(exp) >= 1, f"got {len(exp)}")
         check("C4 每段履历含 role/company/period/projects",
               all(all(k in e for k in ("role","company","period","projects")) for e in exp), "")
-        check("C4 app.js 渲染时间线", all(t in app_src for t in ["tl-item","tl-card","tl-proj"]), "")
+        check("C4 app.js 渲染时间线（exp-item/exp-info）", all(t in app_src for t in ["exp-item","exp-info","exp-results"]), "")
         check("C4 app.js 含量化成果 1400h", "1400h" in app_src, "")
         def norm(s): return re.sub(r"\s+", "", s)
         certs_n = [norm(c) for c in d["base"].get("certs", [])]
@@ -264,8 +266,8 @@ def main():
         titles = {v: d["versions"][v]["title"] for v in ("ai","it","test","erp")}
         check("C4 四版本职位互不相同", len(set(titles.values())) == 4, str(titles))
 
-        # ---- C5 技能展示（技能图标悬浮物）----
-        print("\n[C5] 技能展示（技能图标悬浮物）")
+        # ---- C5 技能展示（v1.3.0：5 组分组卡片化，图标悬浮物保留）----
+        print("\n[C5] 技能展示（5 组分组卡片 + 图标悬浮物）")
         skills = d["base"].get("skills", {})
         all_skill_names = [n for group in skills.values() for n in group]
         check("C5 技能数 >=12", len(all_skill_names) >= 12, f"got {len(all_skill_names)}")
@@ -274,9 +276,10 @@ def main():
         check("C5 GSAP 悬浮动效(yoyo+sine.inOut)", "yoyo" in app_src and "sine.inOut" in app_src, "")
         check("C5 悬浮作用于 skill-badge", "skill-badge" in app_src, "")
         check("C5 浮动幅度 3–5px", "y: -(3 + (i % 3) * 1)" in app_src, "幅度未降为 3–5px")
+        check("C5 分组卡片化（skill-card + skill-group）", "skill-card" in app_src and "skill-group" in app_src, "")
         check("C5 网格间距 22px > 浮动幅度（动画不重合）", "gap: 22px" in css, "")
 
-        # ---- C6 豹豹助手 5 项已验证功能 ----
+        # ---- C6 豹豹助手 5 项已验证功能（v1.3.0：选择器同步新结构）----
         print("\n[C6] 豹豹助手（zxz0608.com 已验证功能）")
         bb = d["base"]["projects"][0]
         check("C6 主打项目为豹豹助手", bb.get("id") == "baobao" and "豹豹助手" in bb["title"], bb.get("title"))
@@ -285,6 +288,7 @@ def main():
         check("C6 中文功能覆盖 对话/新闻/项目/日历/智能家居",
               all(k in zh_items for k in ("对话","新闻","项目","日历","智能家居")), "")
         check("C6 链接为 zxz0608.com", bb.get("link") == "https://zxz0608.com/", bb.get("link"))
+        check("C6 app.js 渲染项目（proj-item/proj-info）", "proj-item" in app_src and "proj-info" in app_src, "")
         en_bb = d["en"]["base"]["projects"][0]
         check("C6 英文 5 项功能", len(en_bb.get("items", [])) == 5, f"got {len(en_bb.get('items', []))}")
         en_items = "".join(en_bb.get("items", [])).lower()
@@ -308,7 +312,7 @@ def main():
         print("\n[C9] 核心功能回归汇总")
         check("C9 核心回归全部通过", core_failed == 0, f"核心段已有 {core_failed} 个失败")
 
-        # ---- C10 GSAP 动效层 ----
+        # ---- C10 GSAP 动效层（v1.3.0：选择器同步 8 区结构）----
         print("\n[C10] GSAP 动效层")
         check("C10 index.html 引用 gsap + ScrollTrigger", "gsap.min.js" in idx_html and "ScrollTrigger.min.js" in idx_html, "")
         # 防火墙大文件对策：gsap/ScrollTrigger 以 .gz 入库，服务器启动时解压为 .js
@@ -320,6 +324,9 @@ def main():
         check("C10 app.js 用 gsap.matchMedia", "gsap.matchMedia" in app_src, "")
         check("C10 app.js 尊重 prefers-reduced-motion", "prefers-reduced-motion" in app_src, "")
         check("C10 重渲染前清理动画", "ScrollTrigger.getAll" in app_src and "killTweensOf" in app_src, "")
+        check("C10 动效选择器同步 8 区（about/experience/projects/skills/edu-honors/off-duty）",
+              all(s in app_src for s in [".about .sec-head", ".experience .sec-head", ".projects .sec-head",
+                                         ".skills .sec-head", ".edu-honors .sec-head", ".off-duty .sec-head"]), "")
 
         # ---- C11 三端适配 + 打印 ----
         print("\n[C11] 三端适配（1440/768/390）+ 打印")
@@ -362,27 +369,26 @@ def main():
         check("C14 print 媒体：transform: none !important 覆盖", "transform: none !important" in print_block, "")
         check("C14 纯 CSS 覆盖（不清屏幕端动画状态）", "clearProps" not in app_src, "")
 
-        # ---- C15 打印版式模板（@page + 横竖版 + 分页规则 + 暖色底）----
+        # ---- C15 打印版式模板（v1.3.0：选择器同步 8 区结构）----
         print("\n[C15] 打印版式模板（@page A4 + 横竖版布局 + 分页规则 + 暖色底）")
         check("C15 静态 @page A4 portrait 兜底", "@page" in css and "size: A4 portrait" in css and "margin: 16mm" in css, "")
         check("C15 html.print-portrait 版式类（print 媒体内）", "html.print-portrait" in print_block, "")
         check("C15 html.print-landscape 版式类（print 媒体内）", "html.print-landscape" in print_block, "")
-        check("C15 竖版单列：hero 1fr / stats 2列 / 技能 2列",
+        check("C15 竖版单列：hero 1fr / about 1fr / 技能 2列",
               "html.print-portrait .hero-inner { grid-template-columns: 1fr" in css
-              and "html.print-portrait .stats { grid-template-columns: 1fr 1fr" in css
-              and "html.print-portrait .skill-grid { grid-template-columns: repeat(2, 1fr)" in css, "")
-        check("C15 横版双列：stats 4列 / 技能 4列 / 项目 2列",
-              "html.print-landscape .stats { grid-template-columns: repeat(4, 1fr)" in css
-              and "html.print-landscape .skill-grid { grid-template-columns: repeat(4, 1fr)" in css
-              and "html.print-landscape .proj-grid { grid-template-columns: 1fr 1fr" in css, "")
-        check("C15 分页规则：封面独占第 1 页（仅 .history break-before: page）",
-              ".history { break-before: page; }" in print_block
-              and ".skills, .projects, .footer { break-before: page" not in print_block, "")
+              and "html.print-portrait .about-wrap { grid-template-columns: 1fr" in css
+              and "html.print-portrait .skill-cards { grid-template-columns: 1fr 1fr" in css, "")
+        check("C15 横版双列：技能 3列 / 教育 2列 / about 双列",
+              "html.print-landscape .skill-cards { grid-template-columns: repeat(3, 1fr)" in css
+              and "html.print-landscape .eh-grid { grid-template-columns: 1fr 1fr" in css
+              and "html.print-landscape .about-wrap { grid-template-columns: 0.8fr 1.2fr" in css, "")
+        check("C15 分页规则：封面独占第 1 页（仅 .about break-before: page）",
+              ".about { break-before: page; }" in print_block
+              and ".experience, .projects, .skills, .edu-honors, .off-duty { break-before: page" not in print_block, "")
         check("C15 分页规则：标题块不拆分（.sec-head-wrap break-inside+break-after: avoid）",
               ".sec-head-wrap { break-inside: avoid; break-after: avoid; }" in print_block, "")
-        check("C15 分页规则：小卡片不截断且 .tl-item 允许跨页（.tl-item 不在 avoid 列表）",
-              ".tl-proj, .proj, .stat, .eh-card, .skill-badge, .pf-text, .pf-side { break-inside: avoid; }" in print_block
-              and ".tl-item" not in ".tl-proj, .proj, .stat, .eh-card, .skill-badge, .pf-text, .pf-side", "")
+        check("C15 分页规则：卡片不截断（exp-item/proj-item/od-item/bubble/skill-card/eh-card）",
+              ".exp-item, .proj-item, .od-item, .bubble, .skill-card, .eh-card { break-inside: avoid; }" in print_block, "")
         check("C15 背景色：卡片/section 无白底覆盖（body 白底除外——用于奶油色内缩）",
               ".stat { background: #fff" not in print_block and ".tl-card { background: #fff" not in print_block
               and ".skill-badge { background: #fff" not in print_block, "")
@@ -395,7 +401,7 @@ def main():
               and "html.print-portrait #app { background: var(--bg); margin: 0 6mm; }" in print_block
               and "html.print-landscape #app { background: var(--bg); margin: 0 6mm; }" in print_block, "")
         check("C15 打印宽度重置：section 子元素 max-width 解除（填满 @page 内容区）",
-              "html.print-portrait .hero-inner, html.print-portrait .history > *" in print_block
+              "html.print-portrait .hero-inner, html.print-portrait .about > *" in print_block
               and "max-width: none; width: 100%;" in print_block, "")
         check("C15 app.js 动态注入 @page（横竖版）", "print-orient-style" in app_src and "@page { size: A4 " in app_src, "")
         check("C15 afterprint 清理", "afterprint" in app_src, "")
@@ -407,6 +413,161 @@ def main():
         server_src = open(os.path.join(ROOT, "server.js"), encoding="utf-8").read()
         check("C16 API 契约不变（6 端点）",
               all(p in server_src for p in ["/api/data", "/api/login", "/api/logout", "/api/check", "/api/save", "/api/upload"]), "")
+
+        # ---- C17 8 区编号式板块结构 + 统一头部公式 ----
+        print("\n[C17] 8 区编号式板块结构 + 统一头部公式")
+        check("C17 app.js 含 8 区渲染函数",
+              all(fn in app_src for fn in ["function hero(", "function about(", "function experience(",
+                  "function projects(", "function skills(", "function eduHonors(", "function offDuty(", "function footer("]), "")
+        check("C17 app.js 含统一头部 secHead()", "function secHead(" in app_src, "")
+        check("C17 编号眉标 00–05 齐全", all(n in app_src for n in ["'00'", "'01'", "'02'", "'03'", "'04'", "'05'"]), "")
+        check("C17 英文眉标 ABOUT/EXPERIENCE/PROJECTS/SKILLS/EDUCATION/OFF DUTY",
+              all(l in app_src for l in ["ABOUT", "EXPERIENCE", "PROJECTS", "SKILLS", "EDUCATION & HONORS", "OFF DUTY"]), "")
+        check("C17 render() 组装顺序：about→experience→projects→skills→eduHonors→offDuty",
+              "about(D) + experience(D) + projects(D) + skills(D) + eduHonors(D) + offDuty(D)" in app_src, "")
+        check("C17 style.css 含 8 区样式类",
+              all(c in css for c in [".about", ".experience", ".projects", ".skills", ".edu-honors", ".off-duty"]), "")
+        check("C17 编号头部样式（sec-eyebrow + sec-head + sec-note）",
+              all(c in css for c in [".sec-eyebrow", ".sec-head", ".sec-note"]), "")
+
+        # ---- C18 Hero 增强（问候徽章 + 荧光笔划线职位 + 状态标签 + 拱形人像）----
+        print("\n[C18] Hero 增强（问候徽章 + 荧光笔划线职位 + 状态标签 + 拱形人像）")
+        check("C18 问候徽章 hero-hello + helloBadge 文案", "hero-hello" in app_src and "helloBadge" in app_src, "")
+        check("C18 荧光笔划线职位 hero-title-mark", "hero-title-mark" in app_src and "hero-title-mark" in css, "")
+        check("C18 拱形人像（border-radius 30px 30px 60px 60px）", "30px 30px 60px 60px" in css, "")
+        check("C18 OPEN TO WORK 斜角标签 hero-open", "hero-open" in app_src and "openToWork" in app_src, "")
+        check("C18 NOW 状态卡 hero-now + 按版本切换", "hero-now" in app_src and "NOW_TAG" in app_src, "")
+        check("C18 保留卡通人像 portrait-cartoon.jpg", "portrait-cartoon.jpg" in app_src, "")
+
+        # ---- C19 关于我区（00 / ABOUT · 特质气泡，复用 advantages）----
+        print("\n[C19] 关于我区（特质气泡，复用 advantages）")
+        advs = d["versions"]["ai"].get("advantages", [])
+        check("C19 ai 版本 advantages 4 条", len(advs) == 4, f"got {len(advs)}")
+        check("C19 app.js 渲染特质气泡 bubble", "bubble" in app_src and "about-bubbles" in app_src, "")
+        check("C19 气泡复用 advantages 数据（advantages forEach）", "advantages" in app_src, "")
+        check("C19 态度型大标题（secAbout 文案）", "secAbout" in app_src and "关于我" in app_src, "")
+        check("C19 4 版本各有 advantages", all(len(d["versions"][v].get("advantages", [])) == 4 for v in ("ai","it","test","erp")), "")
+        check("C19 英文版 advantages", "en" in d and all(len(d["en"]["versions"][v].get("advantages", [])) == 4 for v in ("ai","it","test","erp")), "")
+
+        # ---- C20 工作经历区（01 / EXPERIENCE · 镜像交错时间线卡 + 数据压图）----
+        print("\n[C20] 工作经历区（镜像交错时间线卡 + 数据压图）")
+        check("C20 镜像交错类 mirror", "mirror" in app_src and ".exp-item" in css, "")
+        check("C20 中轴时间线编号 exp-node", "exp-node" in app_src and "exp-timeline" in app_src, "")
+        check("C20 数据压图 exp-metric + expMetrics", "exp-metric" in app_src and "expMetrics" in app_src, "")
+        check("C20 数据压图 metric 含 4.5年/1400h/9年", all(m in app_src for m in ["4.5年", "1400h", "9年"]), "")
+        check("C20 卡片五段式：period/title+role/desc/results", all(t in app_src for t in ["exp-period", "exp-role", "exp-desc", "exp-results"]), "")
+        check("C20 公司作为公共头 exp-company", "exp-company" in app_src, "")
+        check("C20 英文 metric（4.5 yrs / 1,400h / 9 yrs）", "4.5 yrs" in app_src and "1,400h" in app_src and "9 yrs" in app_src, "")
+
+        # ---- C21 个人作品区（02 / PROJECTS · 镜像交错卡 + 数据压图）----
+        print("\n[C21] 个人作品区（镜像交错卡 + 数据压图）")
+        check("C21 镜像交错类 mirror（proj-item）", "proj-item" in app_src and ".proj-item" in css, "")
+        check("C21 数据压图 proj-metric + projMetrics", "proj-metric" in app_src and "projMetrics" in app_src, "")
+        check("C21 数据压图 metric 含 2150+/3 API/CRDT", all(m in app_src for m in ["2150+", "3 API", "CRDT"]), "")
+        check("C21 卡片含 badge/title/link/desc/items/stack", all(t in app_src for t in ["proj-badge", "proj-link", "proj-desc", "proj-items", "proj-stack"]), "")
+        check("C21 featured 项目加重（featuredProject）", "featuredProject" in app_src and "featured" in app_src, "")
+        check("C21 豹豹助手链接渲染（p.link + proj-link + target=_blank）",
+              "p.link" in app_src and "proj-link" in app_src and 'target="_blank"' in app_src, "")
+        check("C21 豹豹助手数据链接为 zxz0608.com", bb.get("link") == "https://zxz0608.com/", bb.get("link"))
+        check("C21 英文 metric（2,150+ / 3 APIs / CRDT）", "2,150+" in app_src and "3 APIs" in app_src, "")
+
+        # ---- C22 技能档案区（03 / SKILLS · 5 组分组卡片化）----
+        print("\n[C22] 技能档案区（5 组分组卡片化）")
+        check("C22 分组卡片 skill-card + skill-group", "skill-card" in app_src and "skill-group" in app_src, "")
+        check("C22 技能组数 = 5", len(d["base"].get("skills", {})) == 5, f"got {len(d['base'].get('skills', {}))}")
+        check("C22 图标徽章横向排列 skill-badges", "skill-badges" in app_src, "")
+        check("C22 悬浮动效保留（yoyo + sine.inOut + skill-badge）", "yoyo" in app_src and "skill-badge" in app_src, "")
+        check("C22 英文技能组名", "en" in d and len(d["en"]["base"].get("skills", {})) == 5, "")
+
+        # ---- C23 教育与荣誉区（04 / EDUCATION & HONORS · 独立卡片 + 占位照 + 校徽）----
+        print("\n[C23] 教育与荣誉区（独立卡片 + 占位照 + 校徽）")
+        check("C23 独立区 edu-honors + eh-grid", "edu-honors" in app_src and "eh-grid" in app_src, "")
+        check("C23 教育卡 eh-edu + 校园占位 svgArt('campus')", "eh-edu" in app_src and "campus" in app_src, "")
+        check("C23 校徽徽章 eh-badge", "eh-badge" in app_src, "")
+        check("C23 荣誉卡 eh-honors", "eh-honors" in app_src, "")
+        check("C23 AWS 认证去重（certs + honors 无重复）", len(dup) == 0, f"重复: {dup}")
+        check("C23 教育数据来自 resume.json education", "education" in app_src, "")
+
+        # ---- C24 兴趣爱好区（05 / OFF DUTY · 占位交替卡）----
+        print("\n[C24] 兴趣爱好区（占位交替卡）")
+        check("C24 新增区 off-duty + od-list", "off-duty" in app_src and "od-list" in app_src, "")
+        check("C24 占位交替卡 od-item + mirror", "od-item" in app_src and "mirror" in app_src, "")
+        check("C24 占位 SVG od-cover + 编号角标 od-num", "od-cover" in app_src and "od-num" in app_src, "")
+        check("C24 占位提示文案「后续可替换」", "后续可替换" in app_src and "replaceable" in app_src, "")
+        check("C24 兴趣内容在 UI 字典 interests（不入 resume.json）", "interests" in app_src, "")
+        check("C24 resume.json 不含 interests 字段（数据模型稳定）", "interests" not in json.dumps(d["base"]), "")
+
+        # ---- C25 SVG 主题插画占位 + 数据压图渲染 ----
+        print("\n[C25] SVG 主题插画占位 + 数据压图渲染")
+        check("C25 内联 SVG 生成函数 svgArt()", "function svgArt(" in app_src, "")
+        check("C25 SVG 主题枚举齐全（svgArt 含 rms/rpa/erp/baobao/aipro-bridge/deskshare/campus/interest0-2）",
+              all(t in app_src for t in ["rms:", "rpa:", "erp:", "baobao:", "'aipro-bridge':", "deskshare:", "campus:", "interest0:", "interest1:", "interest2:"]), "")
+        check("C25 SVG 暖色调（accent-soft/accent-ink/accent 色值）",
+              all(c in app_src for c in ["#f7e7cd", "#9a5518", "#e08a3c"]), "")
+        check("C25 SVG viewBox + preserveAspectRatio（响应式）", "viewBox" in app_src and "preserveAspectRatio" in app_src, "")
+        check("C25 数据压图大号字（exp-metric/proj-metric CSS clamp 字号）",
+              "exp-metric" in css and "proj-metric" in css and "clamp(" in css, "")
+        check("C25 无外部图片请求（svgArt 内联，无 http img src）",
+              not re.search(r'src="https?://', app_src), "存在外部图片请求")
+        check("C25 打印时 SVG 与压图输出（print-color-adjust: exact）", "print-color-adjust: exact" in css, "")
+
+        # ---- C26 核心功能回归（不修坏 · C1–C16 保留 + 新结构同步）----
+        print("\n[C26] 核心功能回归（C1–C16 保留 + 新结构同步）")
+        check("C26 核心回归段全部通过", core_failed == 0, f"核心段已有 {core_failed} 个失败")
+        check("C26 API 契约不变（6 端点）",
+              all(p in server_src for p in ["/api/data", "/api/login", "/api/logout", "/api/check", "/api/save", "/api/upload"]), "")
+        check("C26 resume.json 结构不变（base + versions + en 顶层键）",
+              all(k in d for k in ["base", "versions", "en"]), "")
+        check("C26 暖色配色不变（C1 token 齐全）", all(t in css for t in ["#faf5ec", "#e08a3c", "#3d3529", "#f1e7d3"]), "")
+        check("C26 中英双语保留（langBtn + fb() + en 结构）", "langBtn" in app_src and "function fb(" in app_src and "en" in d, "")
+        check("C26 打印流程保留（printDialog + 横竖版 + afterprint）", "printDialog" in app_src and "afterprint" in app_src, "")
+        check("C26 admin 不受影响（admin.css 独立 + 不引用 style.css）", "/style.css" not in admin_html and "admin.css" in admin_html, "")
+
+        # ---- C27 自动隐藏悬浮导航栏（鼠标靠近顶部出现 · 离开 2 秒隐藏 · 丝滑上下动画）----
+        print("\n[C27] 自动隐藏悬浮导航栏（胶囊形 + 7 项锚点 + 自动隐藏）")
+        check("C27 app.js 含 navBar() 渲染函数", "function navBar(" in app_src, "")
+        check("C27 render() 用 navBar 替代 topbar", "navBar(D) + hero(D)" in app_src and "function topbar(" not in app_src, "")
+        check("C27 胶囊形导航栏 navbar + data-state", "navbar" in app_src and "data-state" in app_src, "")
+        check("C27 顶部感应区 nav-sensor", "nav-sensor" in app_src and "navSensor" in app_src, "")
+        check("C27 7 项导航锚点（about/experience/projects/skills/edu-honors/off-duty/contact）",
+              all(h in app_src for h in ["#about", "#experience", "#projects", "#skills", "#edu-honors", "#off-duty", "#contact"]), "")
+        check("C27 导航项文案 navItems（关于我/工作经历/个人作品/技能档案/教育与荣誉/兴趣爱好/联系我）",
+              all(t in app_src for t in ["关于我", "工作经历", "个人作品", "技能档案", "教育与荣誉", "兴趣爱好", "联系我"]), "")
+        check("C27 英文导航项（About/Experience/Projects/Skills/Education/Off Duty/Contact）",
+              all(t in app_src for t in ["About", "Experience", "Projects", "Skills", "Education", "Off Duty", "Contact"]), "")
+        check("C27 自动隐藏逻辑：showNavBar/hideNavBar + setTimeout 2000ms",
+              "function showNavBar" in app_src and "function hideNavBar" in app_src and "2000" in app_src, "")
+        check("C27 鼠标事件：mouseenter/mouseleave + scroll",
+              "mouseenter" in app_src and "mouseleave" in app_src and "addEventListener('scroll'" in app_src, "")
+        check("C27 首屏常驻：scrollTop <= 100 判断", "100" in app_src and "pageYOffset" in app_src, "")
+        check("C27 平滑跳转：scrollIntoView behavior smooth", "scrollIntoView" in app_src and "smooth" in app_src, "")
+        check("C27 保留语言切换 langBtn + 打印按钮 printBtn", "langBtn" in app_src and "printBtn" in app_src, "")
+        check("C27 style.css 胶囊形样式（navbar + border-radius 999px + box-shadow）",
+              ".navbar" in css and "999px" in css and "box-shadow" in css, "")
+        check("C27 丝滑动画：transition transform/opacity + cubic-bezier easeOutQuint",
+              "transition: transform" in css and "cubic-bezier(0.22, 1, 0.36, 1)" in css, "")
+        check("C27 隐藏态：translateY(-130%) + opacity:0", "translateY(-130%)" in css, "")
+        check("C27 打印时隐藏导航栏（.navbar, .nav-sensor display none）",
+              ".navbar, .nav-sensor" in print_block, "")
+        check("C27 不依赖 GSAP（纯 CSS transition + 原生 JS 事件）",
+              "clearProps" not in app_src or "navbar" in app_src, "")
+        check("C27 旧 topbar 样式已移除（style.css 无 .topbar）", ".topbar" not in css, "")
+
+        # ---- C28 移除公开页版本切换入口（版本管理仅限后台）----
+        print("\n[C28] 移除公开页版本切换入口（版本管理仅限后台）")
+        check("C28 app.js navBar 不含 nav-versions 版本切换", "nav-versions" not in app_src, "仍含版本切换")
+        check("C28 app.js navBar 不含 nav-ver 链接", "nav-ver" not in app_src, "仍含版本链接")
+        check("C28 导航栏右侧仅语言+打印按钮（langBtn + printBtn 保留）", "langBtn" in app_src and "printBtn" in app_src, "")
+        # 4 版本 URL 仍可访问（server.js 路由不变）
+        for v in ["ai", "it", "test", "erp"]:
+            code_v, body_v, _ = get(f"/{v}")
+            check(f"C28 /{v} URL 仍可访问（200）", code_v == 200, f"got {code_v}")
+        # admin 版本管理不受影响
+        check("C28 /admin 仍可访问（版本管理后台）", code == 200 and "admin.js" in admin_html, "")
+        check("C28 admin.css 不引用 style.css（后台独立）", "/style.css" not in admin_html, "")
+        # 公开页不泄露版本切换入口
+        check("C28 app.js 不渲染其他版本链接（无 allVersions forEach 在 navBar）",
+              "nav-versions" not in app_src and "nav-ver" not in app_src, "")
 
         # ---- 汇总 ----
         print("\n" + "=" * 56)
