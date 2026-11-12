@@ -1,0 +1,108 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run tests
+        env:
+          ADMIN_PASSWORD: test_password_for_ci
+        run: python test/test.py
+
+  deploy:
+    name: Deploy to Server
+    needs: test
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy locally (runner is on server)
+        run: |
+          set -e
+          
+          # 配置变量
+          PM2=/home/xianzhe/.npm/_npx/5f7878ce38f1eb13/node_modules/pm2/bin/pm2
+          export PM2_HOME=/home/xianzhe/.pm2
+          TARGET_DIR=/home/xianzhe/Project/resume
+          TARGET_PORT=3000
+          PM2_NAME=resume
+          
+          # 创建临时打包目录
+          TEMP_DIR=$(mktemp -d)
+          
+          # 复制必要文件（排除不需要的）
+          rsync -av ./ "$TEMP_DIR/" \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='docs' \
+            --exclude='test' \
+            --exclude='*.md' \
+            --exclude='.gitignore' \
+            --exclude='scripts'
+          
+          # 备份当前版本
+          if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR 2>/dev/null)" ]; then
+              BACKUP_DIR="${TARGET_DIR}-backup-$(date +%Y%m%d%H%M%S)"
+              echo "备份当前版本到: $BACKUP_DIR"
+              cp -r "$TARGET_DIR" "$BACKUP_DIR"
+          fi
+          
+          # 替换目录内容
+          echo "部署新版本..."
+          rm -rf "$TARGET_DIR"/*
+          cp -r "$TEMP_DIR"/* "$TARGET_DIR"/
+          rm -rf "$TEMP_DIR"
+          
+          # 重启服务
+          cd "$TARGET_DIR"
+          export PORT=$TARGET_PORT
+          export ADMIN_PASSWORD="${ADMIN_PASSWORD:-Resume@Secure2026!}"
+          
+          if $PM2 describe $PM2_NAME > /dev/null 2>&1; then
+              echo "重启 PM2 进程: $PM2_NAME"
+              $PM2 restart $PM2_NAME --update-env
+          else
+              echo "启动新的 PM2 进程: $PM2_NAME"
+              $PM2 start server.js --name $PM2_NAME --update-env
+          fi
+          
+          $PM2 save
+          echo "✅ 部署完成!"
+
+      - name: Verify deployment
+        run: |
+          echo "等待服务启动..."
+          sleep 5
+          
+          # 通过 Cloudflare Tunnel 验证
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://resume.zxz0608.com/ai || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ 部署验证成功: HTTP $HTTP_CODE"
+          else
+            echo "❌ 部署验证失败: HTTP $HTTP_CODE"
+            exit 1
+          fi

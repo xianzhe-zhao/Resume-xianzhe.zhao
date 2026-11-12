@@ -2,6 +2,25 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 
+## [1.4.0] - 2026-11-12
+
+### 新增
+- **部署基础设施**：新增 Linux/macOS 部署脚本 `scripts/deploy.sh` 和 Windows 部署脚本 `scripts/deploy.bat`，支持测试/生产双环境部署
+- **测试系统**：部署到 `192.168.50.100:3004`（内网访问），PM2 进程名 `resume-test`
+- **正式系统**：部署到 `192.168.50.100:3000`，通过 Cloudflare Tunnel 对外暴露为 `resume.zxz0608.com`
+- **契约 spec**：`docs/specs/2026-11-10-cicd-setup.md`（部署基础设施搭建）
+
+### 部署架构
+- **域名**：`resume.zxz0608.com`（Cloudflare Tunnel 代理）
+- **正式端口**：3000（PM2 进程 `resume`）
+- **测试端口**：3004（PM2 进程 `resume-test`，仅内网）
+- **服务器**：`xianzhe@192.168.50.100`（Linux）
+
+### 技术栈
+- 后端：Node.js（内置 http 模块，零依赖，不变）
+- 进程管理：pm2（通过 npx 安装）
+- 内网穿透：Cloudflare Tunnel（cloudflared）
+
 ## [1.3.0] - 2026-11-05
 
 ### 新增

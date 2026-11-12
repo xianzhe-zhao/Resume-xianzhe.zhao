@@ -1,6 +1,6 @@
 /* 简历系统服务端 —— 纯 Node.js，无第三方依赖
    启动：node server.js   （默认端口 3000，可用 PORT 环境变量修改）
-   管理密码：默认 admin123，请用环境变量 ADMIN_PASSWORD 修改 */
+   管理密码：必须设置环境变量 ADMIN_PASSWORD，禁止使用默认密码 */
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -8,14 +8,75 @@ const crypto = require('crypto');
 const zlib = require('zlib');
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const HOST = process.env.HOST || '127.0.0.1'; // 默认只监听本地，通过反向代理暴露
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DATA_FILE = path.join(__dirname, 'data', 'resume.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
+
+// 安全检查：必须设置强密码
+if (!ADMIN_PASSWORD || ADMIN_PASSWORD === 'admin123') {
+  console.error('[FATAL] 必须设置环境变量 ADMIN_PASSWORD，且不能为默认密码 admin123');
+  console.error('  启动方式: ADMIN_PASSWORD=你的强密码 node server.js');
+  process.exit(1);
+}
 
 const VERSIONS = ['ai', 'it', 'test', 'erp'];
 const DEFAULT_VERSION = 'ai';
 
 const sessions = {}; // 内存会话，重启失效
+const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 小时过期
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB 请求体限制
+const loginAttempts = {}; // IP 登录尝试记录
+const LOGIN_MAX_ATTEMPTS = 5; // 5 次失败后锁定
+const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 锁定 15 分钟
+
+// 安全响应头（所有响应统一添加）
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+};
+
+// 数据校验：保存时验证 JSON 结构
+function validateResumeData(data) {
+  if (!data || typeof data !== 'object') return '数据必须是对象';
+  if (!data.base || typeof data.base !== 'object') return '缺少 base 字段';
+  if (!data.versions || typeof data.versions !== 'object') return '缺少 versions 字段';
+  // 检查每个版本的结构
+  for (const key of Object.keys(data.versions)) {
+    const v = data.versions[key];
+    if (!v || typeof v !== 'object') return '版本 ' + key + ' 格式错误';
+  }
+  // 检查 base 中必要字段
+  if (!data.base.name || typeof data.base.name !== 'string') return '缺少姓名';
+  // 检查字段值中不含危险内容（防存储型 XSS）
+  function checkString(obj, path) {
+    if (typeof obj === 'string') {
+      if (obj.includes('</script') || obj.includes('<script')) {
+        return '字段 ' + path + ' 包含不允许的脚本标签';
+      }
+    } else if (obj && typeof obj === 'object') {
+      for (const key of Object.keys(obj)) {
+        const result = checkString(obj[key], path + '.' + key);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+  return checkString(data, 'root');
+}
+
+// HTML 转义：防止 XSS
+function escapeForScript(str) {
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/'/g, '\\u0027')
+    .replace(/"/g, '\\u0022');
+}
 
 /* ---------- 工具 ---------- */
 function loadData() { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
@@ -30,17 +91,98 @@ function getSession(req) {
   return m && sessions[m[1]] ? m[1] : null;
 }
 function sendJSON(res, code, obj, headers) {
-  res.writeHead(code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8' }, headers || {}));
+  const h = Object.assign({}, SECURITY_HEADERS, { 'Content-Type': 'application/json; charset=utf-8' }, headers || {});
+  res.writeHead(code, h);
   res.end(JSON.stringify(obj));
 }
 function readBody(req) {
-  return new Promise(function (resolve) {
-    let b = ''; req.on('data', c => b += c); req.on('end', () => resolve(b));
+  return new Promise(function (resolve, reject) {
+    let b = '';
+    let size = 0;
+    req.on('data', function (c) {
+      size += c.length;
+      if (size > MAX_BODY_SIZE) {
+        reject(new Error('请求体过大（限 1MB）'));
+        req.destroy();
+        return;
+      }
+      b += c;
+    });
+    req.on('end', function () { resolve(b); });
+    req.on('error', function (e) { reject(e); });
   });
 }
+
+// 获取客户端 IP（支持反向代理）
+function getClientIP(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+         req.headers['x-real-ip'] ||
+         req.connection?.remoteAddress ||
+         'unknown';
+}
+
+// 检查登录限流
+function checkLoginRate(ip) {
+  const now = Date.now();
+  if (!loginAttempts[ip]) loginAttempts[ip] = { count: 0, lockUntil: 0 };
+  const record = loginAttempts[ip];
+  
+  // 解锁过期
+  if (record.lockUntil && now > record.lockUntil) {
+    record.count = 0;
+    record.lockUntil = 0;
+  }
+  
+  // 检查是否锁定
+  if (record.lockUntil && now < record.lockUntil) {
+    return false; // 仍被锁定
+  }
+  
+  return true;
+}
+
+// 记录登录失败
+function recordLoginFailure(ip) {
+  if (!loginAttempts[ip]) loginAttempts[ip] = { count: 0, lockUntil: 0 };
+  loginAttempts[ip].count++;
+  if (loginAttempts[ip].count >= LOGIN_MAX_ATTEMPTS) {
+    loginAttempts[ip].lockUntil = Date.now() + LOGIN_LOCK_TIME;
+    console.warn('[SECURITY] IP ' + ip + ' 登录失败 ' + LOGIN_MAX_ATTEMPTS + ' 次，锁定 15 分钟');
+  }
+}
+
+// 清理过期会话（每小时执行一次）
+function cleanExpiredSessions() {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const token in sessions) {
+    if (now - sessions[token] > SESSION_TTL) {
+      delete sessions[token];
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) console.log('[SESSION] 清理过期会话 ' + cleaned + ' 个');
+}
+setInterval(cleanExpiredSessions, 60 * 60 * 1000);
+// 安全静态文件服务：严格路径校验
 function safeStatic(p) {
-  const fp = path.join(PUBLIC_DIR, path.normalize(p).replace(/^(\.\.[/\\])+/, ''));
-  return fp.startsWith(PUBLIC_DIR) && fs.existsSync(fp) && fs.statSync(fp).isFile() ? fp : null;
+  // 解码 URL 编码，防止 %2e%2e 绕过
+  const decoded = decodeURIComponent(p);
+  // 规范化路径，解析所有 .. 和 .
+  const normalized = path.normalize(decoded);
+  // 构建完整路径
+  const fp = path.resolve(PUBLIC_DIR, '.' + normalized);
+  // 严格检查：必须在 PUBLIC_DIR 内
+  if (!fp.startsWith(PUBLIC_DIR + path.sep) && fp !== PUBLIC_DIR) {
+    return null;
+  }
+  // 检查文件是否存在且是文件
+  try {
+    const stat = fs.statSync(fp);
+    return stat.isFile() ? fp : null;
+  } catch (e) {
+    return null;
+  }
 }
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 
@@ -70,9 +212,21 @@ function servePublicPage(res, version) {
   const data = loadData();
   const realVer = data.versions[version] ? version : DEFAULT_VERSION;
   const payload = JSON.stringify({ base: data.base, version: data.versions[realVer], versionKey: realVer, allVersions: Object.keys(data.versions), en: data.en || null });
+  
+  // 转义 JSON 中的危险字符，防止 </script> 突破
+  const safePayload = payload
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+  
   let html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
-  html = html.replace('/*__RESUME_DATA__*/', 'window.RESUME = ' + payload + ';');
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  html = html.replace('/*__RESUME_DATA__*/', 'window.RESUME = ' + safePayload + ';');
+  
+  const h = Object.assign({}, SECURITY_HEADERS, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Security-Policy': "default-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'"
+  });
+  res.writeHead(200, h);
   res.end(html);
 }
 
@@ -82,18 +236,55 @@ const server = http.createServer(async function (req, res) {
   const p = url.pathname;
 
   // API
-  if (p === '/api/data' && req.method === 'GET') return sendJSON(res, 200, loadData());
+  if (p === '/api/data' && req.method === 'GET') {
+    // 公开 API：返回脱敏数据（隐藏手机号、微信等隐私信息）
+    const data = loadData();
+    const publicData = {
+      base: Object.assign({}, data.base),
+      versions: data.versions,
+      en: data.en || null
+    };
+    // 脱敏：隐藏手机号和微信
+    if (publicData.base.phone) publicData.base.phone = publicData.base.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+    if (publicData.base.wechat) publicData.base.wechat = publicData.base.wechat.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+    return sendJSON(res, 200, publicData);
+  }
+
+  // 完整数据 API（需登录）
+  if (p === '/api/data/full' && req.method === 'GET') {
+    if (!getSession(req)) return sendJSON(res, 401, { ok: false, error: '未登录' });
+    return sendJSON(res, 200, loadData());
+  }
 
   if (p === '/api/login' && req.method === 'POST') {
-    const body = await readBody(req);
+    const ip = getClientIP(req);
+    
+    // 检查登录限流
+    if (!checkLoginRate(ip)) {
+      const remaining = Math.ceil((loginAttempts[ip].lockUntil - Date.now()) / 60000);
+      return sendJSON(res, 429, { ok: false, error: '登录尝试过多，请 ' + remaining + ' 分钟后再试' });
+    }
+    
+    let body;
+    try { body = await readBody(req); }
+    catch (e) { return sendJSON(res, 413, { ok: false, error: e.message }); }
+    
     try {
       const obj = JSON.parse(body || '{}');
       if (obj.password === ADMIN_PASSWORD) {
+        // 登录成功，清除失败记录
+        delete loginAttempts[ip];
         const token = crypto.randomBytes(16).toString('hex');
         sessions[token] = Date.now();
-        return sendJSON(res, 200, { ok: true }, { 'Set-Cookie': 'resume_session=' + token + '; HttpOnly; Path=/; SameSite=Lax' });
+        console.log('[LOGIN] 登录成功 IP: ' + ip);
+        return sendJSON(res, 200, { ok: true }, { 'Set-Cookie': 'resume_session=' + token + '; HttpOnly; Path=/; SameSite=Lax; Secure' });
       }
-      return sendJSON(res, 401, { ok: false, error: '密码错误' });
+      // 登录失败，记录
+      recordLoginFailure(ip);
+      const attempts = loginAttempts[ip]?.count || 0;
+      const remaining = LOGIN_MAX_ATTEMPTS - attempts;
+      console.warn('[LOGIN] 登录失败 IP: ' + ip + ' 剩余尝试: ' + remaining);
+      return sendJSON(res, 401, { ok: false, error: '密码错误' + (remaining <= 3 ? '（剩余 ' + remaining + ' 次尝试）' : '') });
     } catch (e) { return sendJSON(res, 400, { ok: false, error: '请求格式错误' }); }
   }
 
@@ -107,28 +298,63 @@ const server = http.createServer(async function (req, res) {
 
   if (p === '/api/save' && req.method === 'POST') {
     if (!getSession(req)) return sendJSON(res, 401, { ok: false, error: '未登录' });
-    const body = await readBody(req);
-    try { saveData(JSON.parse(body)); return sendJSON(res, 200, { ok: true }); }
+    let body;
+    try { body = await readBody(req); }
+    catch (e) { return sendJSON(res, 413, { ok: false, error: e.message }); }
+    try {
+      const data = JSON.parse(body);
+      // 数据校验：防止写入恶意内容
+      const validationError = validateResumeData(data);
+      if (validationError) {
+        console.warn('[SECURITY] 数据校验失败: ' + validationError);
+        return sendJSON(res, 400, { ok: false, error: '数据校验失败: ' + validationError });
+      }
+      saveData(data);
+      console.log('[SAVE] 数据已更新 by session');
+      return sendJSON(res, 200, { ok: true });
+    }
     catch (e) { return sendJSON(res, 400, { ok: false, error: '数据格式错误: ' + e.message }); }
   }
 
   // 头像上传（需登录）：接收 base64 图片，存到 public/uploads/，返回可访问路径
   if (p === '/api/upload' && req.method === 'POST') {
     if (!getSession(req)) return sendJSON(res, 401, { ok: false, error: '未登录' });
-    const body = await readBody(req);
+    let body;
+    try { body = await readBody(req); }
+    catch (e) { return sendJSON(res, 413, { ok: false, error: e.message }); }
     try {
       const obj = JSON.parse(body);
       if (!obj.data || !obj.data.startsWith('data:image/')) return sendJSON(res, 400, { ok: false, error: '非图片数据' });
       // 解析 data:image/png;base64,xxxx
       const m = obj.data.match(/^data:image\/(\w+);base64,(.+)$/);
       if (!m) return sendJSON(res, 400, { ok: false, error: '图片格式不支持' });
-      const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+      // 验证扩展名白名单（禁止 SVG，防止 XSS）
+      const allowedExt = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+      const ext = m[1].toLowerCase();
+      if (!allowedExt.includes(ext)) return sendJSON(res, 400, { ok: false, error: '图片类型不支持: ' + ext });
+      const safeExt = ext === 'jpeg' ? 'jpg' : ext;
       const buf = Buffer.from(m[2], 'base64');
       if (buf.length > 2 * 1024 * 1024) return sendJSON(res, 400, { ok: false, error: '图片过大（限 2MB）' });
+      // 验证图片魔数（magic bytes），防止伪装扩展名
+      const magicBytes = {
+        png: Buffer.from([0x89, 0x50, 0x4E, 0x47]),
+        jpg: Buffer.from([0xFF, 0xD8, 0xFF]),
+        gif: Buffer.from([0x47, 0x49, 0x46, 0x38]),
+        webp: Buffer.from([0x52, 0x49, 0x46, 0x46])
+      };
+      const expectedMagic = magicBytes[safeExt];
+      if (expectedMagic && buf.length >= expectedMagic.length) {
+        const actualMagic = buf.slice(0, expectedMagic.length);
+        if (!actualMagic.equals(expectedMagic)) {
+          console.warn('[SECURITY] 上传文件魔数不匹配: 期望 ' + safeExt + ', 实际内容不符');
+          return sendJSON(res, 400, { ok: false, error: '图片内容验证失败' });
+        }
+      }
       const uploadsDir = path.join(PUBLIC_DIR, 'uploads');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-      const fname = 'avatar.' + ext;
+      const fname = 'avatar.' + safeExt;
       fs.writeFileSync(path.join(uploadsDir, fname), buf);
+      console.log('[UPLOAD] 头像已更新: ' + fname);
       return sendJSON(res, 200, { ok: true, path: '/uploads/' + fname });
     } catch (e) { return sendJSON(res, 400, { ok: false, error: '上传失败: ' + e.message }); }
   }
@@ -138,20 +364,32 @@ const server = http.createServer(async function (req, res) {
   if (VERSIONS.includes(p.slice(1))) return servePublicPage(res, p.slice(1));
   if (p === '/admin') {
     const html = fs.readFileSync(path.join(PUBLIC_DIR, 'admin.html'), 'utf8');
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    const h = Object.assign({}, SECURITY_HEADERS, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Security-Policy': "default-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+    });
+    res.writeHead(200, h);
     return res.end(html);
   }
 
   // 静态文件（Cache-Control: no-cache 确保浏览器每次验证，避免打印 CSS 改动不生效）
   const fp = safeStatic(p);
-  if (fp) { res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }); return res.end(fs.readFileSync(fp)); }
+  if (fp) {
+    const h = Object.assign({}, SECURITY_HEADERS, {
+      'Content-Type': MIME[path.extname(fp)] || 'application/octet-stream',
+      'Cache-Control': 'no-cache'
+    });
+    res.writeHead(200, h);
+    return res.end(fs.readFileSync(fp));
+  }
 
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('404 Not Found');
 });
 
-server.listen(PORT, function () {
-  console.log('Resume server running at http://localhost:' + PORT);
+server.listen(PORT, HOST, function () {
+  console.log('Resume server running at http://' + HOST + ':' + PORT);
   console.log('Default: /' + DEFAULT_VERSION + '   Admin: /admin');
-  console.log('Password: ' + (ADMIN_PASSWORD === 'admin123' ? 'admin123 (default, change via ADMIN_PASSWORD env)' : '(set via env)'));
+  console.log('Password: (set via ADMIN_PASSWORD env)');
+  console.log('[SECURITY] 建议通过反向代理（如 Cloudflare Tunnel）暴露服务，不要直接对外');
 });

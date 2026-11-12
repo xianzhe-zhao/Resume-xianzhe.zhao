@@ -162,18 +162,19 @@ def main():
         check("/api/login 返回会话cookie", "resume_session=" in sess, "无cookie")
 
         # 保存往返（临时副本，安全）
-        code, body, _ = get("/api/data")
+        # 需要先登录才能访问 /api/data/full
+        code, body, _ = get("/api/data/full", {"Cookie": sess})
         d = json.loads(body)
         orig_name = d["base"]["name"]
         d["base"]["name"] = "测试临时名"
         code, _, _ = post("/api/save", d, {"Cookie": sess})
         check("/api/save 登录后成功(200)", code == 200, f"got {code}")
-        code, body, _ = get("/api/data")
+        code, body, _ = get("/api/data/full", {"Cookie": sess})
         d2 = json.loads(body)
         check("/api/save 数据已更新", d2["base"]["name"] == "测试临时名", d2["base"]["name"])
         d2["base"]["name"] = orig_name
         post("/api/save", d2, {"Cookie": sess})
-        code, body, _ = get("/api/data")
+        code, body, _ = get("/api/data/full", {"Cookie": sess})
         check("/api/save 恢复原数据", json.loads(body)["base"]["name"] == orig_name, "")
 
         # 头像上传
@@ -568,6 +569,56 @@ def main():
         # 公开页不泄露版本切换入口
         check("C28 app.js 不渲染其他版本链接（无 allVersions forEach 在 navBar）",
               "nav-versions" not in app_src and "nav-ver" not in app_src, "")
+
+        # ======== [C29] 安全加固 ========
+        print("\n[C29] 安全加固")
+        
+        # 安全响应头检查
+        code29, body29, headers29 = get("/ai")
+        check("C29 X-Content-Type-Options: nosniff", headers29.get("X-Content-Type-Options") == "nosniff", str(headers29))
+        check("C29 X-Frame-Options: DENY", headers29.get("X-Frame-Options") == "DENY", str(headers29))
+        check("C29 Content-Security-Policy 存在", "Content-Security-Policy" in headers29, str(headers29))
+        
+        # 先登录获取 session
+        code_login, body_login, headers_login = post("/api/login", {"password": "testpass123"})
+        cookie = headers_login.get("Set-Cookie", "")
+        session_cookie = cookie.split(";")[0] if cookie else ""
+        
+        # XSS 防护：数据中 </script> 被转义
+        # 获取完整数据
+        code_full, body_full, _ = get("/api/data/full", {"Cookie": session_cookie})
+        if code_full != 200:
+            check("C29 获取完整数据", False, f"got {code_full}")
+        else:
+            original_data = json.loads(body_full)
+            malicious_data = json.loads(json.dumps(original_data))
+            malicious_data["base"]["name"] = "</script><script>alert(1)</script>"
+            code_save, body_save, _ = post("/api/save", malicious_data, {"Cookie": session_cookie})
+            check("C29 保存含 </script> 的数据被拒绝（400）", code_save == 400, f"got {code_save}, body: {body_save[:100]}")
+            
+            # 恢复原数据
+            post("/api/save", original_data, {"Cookie": session_cookie})
+        
+        # 数据校验：缺少必要字段
+        bad_data = {"foo": "bar"}
+        code_bad, body_bad, _ = post("/api/save", bad_data, {"Cookie": session_cookie})
+        check("C29 保存缺少 base/versions 的数据被拒绝", code_bad == 400, f"got {code_bad}")
+        
+        # /api/data 脱敏检查
+        code_pub, body_pub, _ = get("/api/data")
+        pub_data = json.loads(body_pub)
+        phone = pub_data.get("base", {}).get("phone", "")
+        check("C29 /api/data 手机号脱敏（含 ****）", "****" in phone, f"phone={phone}")
+        
+        # /api/data/full 需登录（用新的无 cookie 请求）
+        code_full2, body_full2, _ = get("/api/data/full")
+        check("C29 /api/data/full 未登录返回 401", code_full2 == 401, f"got {code_full2}")
+        
+        # 路径遍历防护
+        code_traverse, _, _ = get("/../../../etc/passwd")
+        check("C29 路径遍历 /../../../etc/passwd 返回 404", code_traverse == 404, f"got {code_traverse}")
+        code_traverse2, _, _ = get("/..%2F..%2F..%2Fetc%2Fpasswd")
+        check("C29 路径遍历 URL编码 返回 404", code_traverse2 == 404, f"got {code_traverse2}")
 
         # ---- 汇总 ----
         print("\n" + "=" * 56)
