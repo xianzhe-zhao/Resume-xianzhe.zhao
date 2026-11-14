@@ -200,6 +200,89 @@ scripts\deploy.bat prod
 
 ---
 
+## 故障排查：Git 连接失败
+
+### 问题现象
+
+CI/CD 运行时 `actions/checkout` 反复失败，报错：
+```
+Failed to connect to github.com:443 after 21000 ms: Could not connect to server
+```
+
+### 原因分析
+
+服务器位于中国大陆，访问 GitHub 可能不稳定。
+
+### 解决方案：配置代理（备用方案）
+
+> ⚠️ 此方案仅在 CI/CD 重试机制（5 次 × 60 秒）仍然失败时使用。
+
+#### 方案 A：mihomo 命令行代理（推荐）
+
+mihomo（原 Clash Meta 内核）是纯命令行代理工具，无需桌面环境。
+
+**1. 安装 mihomo**
+
+```bash
+# 下载（amd64）
+curl -L https://github.com/MetaCubeX/mihomo/releases/latest/download/mihomo-linux-amd64-compatible.gz -o /tmp/mihomo.gz
+gunzip /tmp/mihomo.gz
+chmod +x /tmp/mihomo
+sudo mv /tmp/mihomo /usr/local/bin/mihomo
+
+# 验证
+mihomo -v
+```
+
+**2. 配置订阅**
+
+```bash
+mkdir -p ~/.config/mihomo
+# 将你的 Clash 订阅内容保存到：
+# ~/.config/mihomo/config.yaml
+```
+
+**3. 启动代理**
+
+```bash
+# 前台运行（测试）
+mihomo -d ~/.config/mihomo
+
+# 后台运行
+nohup mihomo -d ~/.config/mihomo > /dev/null 2>&1 &
+```
+
+**4. 配置 Git 使用代理**
+
+```bash
+# 假设 mihomo 监听 7890 端口
+git config --global http.proxy http://127.0.0.1:7890
+git config --global https.proxy http://127.0.0.1:7890
+```
+
+**5. 验证**
+
+```bash
+git ls-remote https://github.com/xianzhe-zhao/Resume-xianzhe.zhao.git HEAD
+```
+
+**6. 取消代理（恢复直连）**
+
+```bash
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+```
+
+#### 方案 B：Clash Verge Rev GUI（需要桌面环境）
+
+> ⚠️ 仅适用于有桌面环境的 Linux 系统。
+
+- 下载地址：https://github.com/clash-verge-rev/clash-verge-rev/releases
+- 服务器架构：`x86_64`，下载 `amd64.deb`
+- 安装：`sudo dpkg -i clash-verge-rev_*.deb`
+
+---
+
 ## 版本管理
 
 见 [CHANGELOG.md](CHANGELOG.md)。遵循语义化版本规范。
