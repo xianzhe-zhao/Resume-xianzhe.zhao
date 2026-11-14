@@ -207,8 +207,6 @@ PM2 版本不匹配会导致退出码非零，workflow 中已用 `|| true` 处�
 #### 端口被占用
 
 使用 `lsof -ti :PORT` 查找并 `kill -9` 杀掉占用进程。
-第 5 次尝试 → 成功 ✅ / 失败 ❌
-```
 
 ### 手动部署
 
@@ -406,10 +404,3 @@ gh pr create --base main --head test --title "deploy: 合并 test 到 main"
 
 MIT
 
-#   C I / C D   ����KmՋ
- 
- 
- 
- ,g!k�c�N(u�N�����SR/e�rAmz/f&Tck8^�]\O0
- 
- 
