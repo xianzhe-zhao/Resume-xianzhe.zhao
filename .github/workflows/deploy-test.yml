@@ -63,12 +63,22 @@ jobs:
           echo "ADMIN_PASSWORD=$ADMIN_PASSWORD" > "$TARGET_DIR/.env"
           echo "PORT=$TARGET_PORT" >> "$TARGET_DIR/.env"
 
-          # 先停止并删除旧进程（确保新环境变量生效）
+          # 强制杀掉占用端口的旧进程
+          echo "停止旧进程..."
+          fuser -k ${TARGET_PORT}/tcp 2>/dev/null || true
           $PM2 delete $PM2_NAME 2>/dev/null || true
-          sleep 1
+          sleep 2
 
-          # 用新环境变量启动
+          # 确认端口已释放
+          if fuser ${TARGET_PORT}/tcp 2>/dev/null; then
+              echo "⚠️ 端口 $TARGET_PORT 仍被占用，强制 kill..."
+              fuser -k -9 ${TARGET_PORT}/tcp 2>/dev/null || true
+              sleep 2
+          fi
+
+          # 启动新进程
           echo "启动 PM2 进程：$PM2_NAME (端口 $TARGET_PORT)"
+          cd "$TARGET_DIR"
           $PM2 start server.js --name $PM2_NAME
 
           $PM2 save
