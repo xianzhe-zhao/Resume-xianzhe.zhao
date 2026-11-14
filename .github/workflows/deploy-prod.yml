@@ -48,7 +48,7 @@ jobs:
           
           # 停止旧进程
           echo "停止旧进程..."
-          $PM2 delete $PM2_NAME 2>&1 || echo "PM2 进程不存在，继续..."
+          $PM2 delete $PM2_NAME >/dev/null 2>&1; true
           OLD_PID=$(lsof -ti :$TARGET_PORT 2>/dev/null)
           if [ -n "$OLD_PID" ]; then
               kill -9 $OLD_PID 2>/dev/null || true
