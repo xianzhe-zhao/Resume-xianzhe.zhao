@@ -69,9 +69,9 @@ jobs:
           # 启动新进程
           echo "启动 PM2 进程：$PM2_NAME (端口 $TARGET_PORT)"
           cd "$TARGET_DIR"
-          $PM2 start server.js --name $PM2_NAME
+          $PM2 start server.js --name $PM2_NAME || true
           
-          $PM2 save
+          $PM2 save || true
           echo "✅ 生产环境部署完成！"
 
       - name: Verify deployment
