@@ -1,4 +1,4 @@
-﻿# 赵先哲 · 可管理的网页简历系统
+# 赵先哲 · 可管理的网页简历系统
 
 数据驱动的多版本简历系统：内容与展示分离，4 个求职意向版本，密码保护的管理后台，一键分享/导出。
 
@@ -111,52 +111,102 @@ node test/cdp-print.mjs  # 31 项打印/存为 PDF 流程 CDP 实测（需本机
 
 ## CI/CD 自动部署
 
-### 自托管 Runner 方案
+### 双分支隔离部署方案
 
-本项目使用 **GitHub Actions 自托管 Runner** 实现自动部署：
+本项目采用 **GitHub Actions 自托管 Runner** + **双分支隔离部署**：
 
 ```
-推送代码到 main → GitHub Actions 触发 → 服务器 Runner 执行 → 自动部署
+┌─────────────────────────────────────────────────────────────┐
+│  开发 → PR 合并到 test → 自动部署测试环境                      │
+│                        ↓                                     │
+│                   测试通过后                                  │
+│                        ↓                                     │
+│              PR 合并到 main → 自动部署生产环境                  │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+### 环境配置
+
+| 环境 | 分支 | 目录 | 端口 | PM2 进程 | 访问地址 |
+|---|---|---|---|---|---|
+| **测试** | `test` | `/home/xianzhe/Project/resume-test` | 3002 | `resume-test` | http://192.168.50.100:3002/ai |
+| **生产** | `main` | `/home/xianzhe/Project/resume` | 3000 | `resume` | https://resume.zxz0608.com/ai |
 
 ### 工作流程
 
-1. **本地开发**
-   ```bash
-   git add .
-   git commit -m "feat: xxx"
-   git push origin main
-   ```
+#### 1. 开发新功能
 
-2. **自动触发**（或 PR 合并到 main）
-   - GitHub Actions 检测到 main 分支更新
-   - 自托管 Runner（服务器）拉取代码（**自动重试机制**：最多 5 次，间隔 60 秒）
-   - 运行测试（246 项）
-   - 测试通过后自动部署
+```bash
+# 创建功能分支
+git checkout -b feature/xxx
 
-3. **部署流程**
-   - 备份当前版本
-   - 同步新文件到 `/home/xianzhe/Project/resume`
-   - 重启 PM2 服务
-   - 验证 https://resume.zxz0608.com 可访问
-
-### Git 拉取重试机制
-
-由于国内网络访问 GitHub 可能不稳定，workflow 内置了重试机制：
-
-| 参数 | 值 | 说明 |
-|---|---|---|
-| 最大重试次数 | 5 次 | 超过 5 次才报错 |
-| 重试间隔 | 60 秒 | 每次失败后等待 1 分钟 |
-| 最长等待 | 约 5 分钟 | 5 次 × 60 秒 |
-
+# 开发完成后，合并到 test 分支
+git checkout test
+git merge feature/xxx
+git push origin test
+# → 自动部署到测试环境
 ```
-第 1 次尝试 → 失败 → 等待 60 秒
-    ↓
-第 2 次尝试 → 失败 → 等待 60 秒
-    ↓
-...
-    ↓
+
+#### 2. 测试通过后部署生产
+
+**方式 A：命令行**
+```bash
+git checkout main
+git merge test
+git push origin main
+# → 自动部署到生产环境
+```
+
+**方式 B：GitHub 网页**
+1. 创建 PR：`test` → `main`
+2. 等待 CI 检查通过
+3. 点击 "Merge pull request"
+
+#### 3. 部署流程
+
+- 备份当前版本（保留最近 5 个）
+- 同步新文件到目标目录
+- 写入 `.env` 文件（ADMIN_PASSWORD + PORT）
+- 停止旧进程（pm2 delete + kill）
+- 启动新进程（pm2 start）
+- 验证服务可访问
+
+### 分支保护规则
+
+**main 分支保护**：
+- ✅ 必须通过 PR 合并
+- ✅ 必须通过状态检查：
+  - `Test & Deploy to Test Env`
+  - `Deploy to Production`
+- ✅ 分支必须是最新的
+- ✅ 禁止强制推送
+
+**test 分支**：可直接推送，快速迭代
+
+### 故障排查
+
+#### Git 连接失败
+
+如果 CI 运行时 `git clone` 失败（国内网络问题），配置代理：
+
+```bash
+# 方案 A：配置 Git 使用 SSH
+git config --global url."git@github.com:".insteadOf https://github.com/
+
+# 方案 B：使用 mihomo 代理
+git config --global http.proxy http://127.0.0.1:7890
+git config --global https.proxy http://127.0.0.1:7890
+```
+
+详见：[docs/ci-cd-guide.md](docs/ci-cd-guide.md)
+
+#### PM2 版本警告
+
+PM2 版本不匹配会导致退出码非零，workflow 中已用 `|| true` 处理。
+
+#### 端口被占用
+
+使用 `lsof -ti :PORT` 查找并 `kill -9` 杀掉占用进程。
 第 5 次尝试 → 成功 ✅ / 失败 ❌
 ```
 
@@ -356,3 +406,7 @@ gh pr create --base main --head test --title "deploy: 合并 test 到 main"
 
 MIT
 
+#   C I / C D   ����KmՋ 
+  
+ ,g!k�c�N(u�N�����SR/e�rAmz/f&Tck8^�]\O0 
+ 
