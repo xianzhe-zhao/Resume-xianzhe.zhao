@@ -1,5 +1,16 @@
 # 安全审查日志
 
+## 2026-11-15 增量检查 + P1 凭据泄露处置（本次变更：CI/CD 加固）
+
+- **距上次周期审查**：15 天（上次 2026-10-31，周期每月一次）
+- **新增依赖**：无（变更仅涉部署脚本/workflow/文档；服务器侧新增 pm2 7.1.2 用户前缀安装，非项目依赖）
+- **P1 事件：管理密码明文泄露于 PUBLIC 仓库**
+  - 事实：双分支 CI/CD 搭建（2026-11-14）时，真实 ADMIN_PASSWORD 明文提交进 4 个文件（deploy-test.yml / deploy-prod.yml / ci-deploy.sh / deploy-security.sh），仓库为 PUBLIC，公网可见约 1 天
+  - 处置：①密码轮换——两环境 .env 已随新部署更新，旧密码作废（旧值仍存于 git 历史，但已无效力；改写公网历史成本高且属假安全，不作）；②凭据出库——新密码只存服务器 `~/.secrets/resume.env`（600），脚本缺失即失败、禁止默认值回退；③删除含密码死脚本 deploy-security.sh；④workflow Verify 失败时不再 `cat .env`（防密码进 Actions 日志）
+  - 新密码：用户指定（11 位；长度低于建议值已告知，缓解：/api/login 5 次失败锁 IP 15 分钟）；后续再轮换只需改 secrets 文件 + 重新部署
+- **附带加固**：ci-deploy.sh fail-fast（set -euo pipefail）+ 失败自动回滚备份 + PM2 三级解析；pm2 daemon 已 update 对齐 7.1.2（13 进程全部 online）
+- **结论**：P1 已闭环（轮换 + 出库），无新增攻击面。spec：docs/specs/2026-11-15-cicd-hardening.md
+
 ## 2026-10-31 首次完整审查（接入 dev-release-workflow）
 
 - **范围**：server.js（零依赖 Node http）、public/*（vanilla JS）、test/test.py（Python 标准库）、vendored 前端库 gsap.min.js / ScrollTrigger.min.js（3.12.5）

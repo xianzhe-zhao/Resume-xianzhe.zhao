@@ -10,8 +10,6 @@ jobs:
     name: Test & Deploy to Test Env
     runs-on: self-hosted
     if: github.ref == 'refs/heads/test'
-    env:
-      ADMIN_PASSWORD: Resume@Secure2026!
 
     steps:
       - name: Checkout code
@@ -36,6 +34,5 @@ jobs:
           else
             echo "❌ 测试环境验证失败：HTTP $HTTP_CODE"
             cat /home/xianzhe/.pm2/logs/resume-test-error.log 2>/dev/null | tail -5
-            cat /home/xianzhe/Project/resume-test/.env 2>/dev/null
             exit 1
           fi
