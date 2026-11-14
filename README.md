@@ -1,4 +1,4 @@
-# 赵先哲 · 可管理的网页简历系统
+﻿# 赵先哲 · 可管理的网页简历系统
 
 数据驱动的多版本简历系统：内容与展示分离，4 个求职意向版本，密码保护的管理后台，一键分享/导出。
 
@@ -345,17 +345,17 @@ git config --global --unset https.proxy
 
 ### 工作流程
 
-`
+```
 开发 → PR 合并到 test → 自动部署测试环境
                         ↓
                    测试通过后
                         ↓
               PR 合并到 main → 自动部署生产环境
-`
+```
 
 ### 日常开发
 
-`ash
+```bash
 # 1. 创建功能分支
 git checkout -b feature/xxx
 
@@ -369,7 +369,7 @@ git push origin test
 gh pr create --base main --head test --title "deploy: 合并 test 到 main"
 # 或在 GitHub 网页上创建 PR
 # → 自动部署到生产环境
-`
+```
 
 ### 分支保护
 
@@ -406,7 +406,10 @@ gh pr create --base main --head test --title "deploy: 合并 test 到 main"
 
 MIT
 
-#   C I / C D   ����KmՋ 
-  
- ,g!k�c�N(u�N�����SR/e�rAmz/f&Tck8^�]\O0 
+#   C I / C D   ����KmՋ
+ 
+ 
+ 
+ ,g!k�c�N(u�N�����SR/e�rAmz/f&Tck8^�]\O0
+ 
  
