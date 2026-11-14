@@ -2,14 +2,14 @@ name: Deploy to Test
 
 on:
   push:
-    branches: [main]
+    branches: [test]
   workflow_dispatch:
 
 jobs:
   test-and-deploy:
     name: Test & Deploy to Test Env
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/test'
 
     steps:
       - name: Checkout code
