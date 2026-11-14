@@ -1,0 +1,77 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/production'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Deploy to Production
+        run: |
+          set -e
+
+          PM2=/home/xianzhe/.npm/_npx/5f7878ce38f1eb13/node_modules/pm2/bin/pm2
+          export PM2_HOME=/home/xianzhe/.pm2
+          TARGET_DIR=/home/xianzhe/Project/resume
+          TARGET_PORT=3000
+          PM2_NAME=resume
+
+          # 备份当前版本（保留最近 5 个）
+          if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR 2>/dev/null)" ]; then
+              BACKUP_DIR="${TARGET_DIR}-backup-$(date +%Y%m%d%H%M%S)"
+              echo "备份当前版本到：$BACKUP_DIR"
+              cp -r "$TARGET_DIR" "$BACKUP_DIR"
+              
+              # 清理旧备份，保留最近 5 个
+              ls -dt ${TARGET_DIR}-backup-* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
+          fi
+
+          # 部署：同步文件（排除不需要的）
+          echo "部署新版本到生产环境..."
+          rsync -av --delete ./ "$TARGET_DIR/" \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='docs' \
+            --exclude='test' \
+            --exclude='*.md' \
+            --exclude='.gitignore' \
+            --exclude='scripts'
+
+          # 重启服务
+          cd "$TARGET_DIR"
+          export PORT=$TARGET_PORT
+          export ADMIN_PASSWORD="${ADMIN_PASSWORD:-Resume@Secure2026!}"
+
+          if $PM2 describe $PM2_NAME > /dev/null 2>&1; then
+              echo "重启 PM2 进程：$PM2_NAME"
+              $PM2 restart $PM2_NAME --update-env
+          else
+              echo "启动新的 PM2 进程：$PM2_NAME"
+              $PM2 start server.js --name $PM2_NAME --update-env
+          fi
+
+          $PM2 save
+          echo "✅ 生产环境部署完成！"
+
+      - name: Verify deployment
+        run: |
+          sleep 3
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://resume.zxz0608.com/ai || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ 生产环境验证成功：HTTP $HTTP_CODE"
+          else
+            echo "❌ 生产环境验证失败：HTTP $HTTP_CODE"
+            exit 1
+          fi
