@@ -31,7 +31,7 @@ jobs:
           PM2=/home/xianzhe/.npm/_npx/5f7878ce38f1eb13/node_modules/pm2/bin/pm2
           export PM2_HOME=/home/xianzhe/.pm2
           TARGET_DIR=/home/xianzhe/Project/resume-test
-          TARGET_PORT=3004
+          TARGET_PORT=3002
           PM2_NAME=resume-test
 
           # 备份当前版本（保留最近 5 个）
@@ -95,7 +95,7 @@ jobs:
       - name: Verify deployment
         run: |
           sleep 3
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3004/ai || echo "000")
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3002/ai || echo "000")
           if [ "$HTTP_CODE" = "200" ]; then
             echo "✅ 测试环境验证成功：HTTP $HTTP_CODE"
           else
