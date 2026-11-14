@@ -1,4 +1,4 @@
-# 赵先哲 · 可管理的网页简历系统
+﻿# 赵先哲 · 可管理的网页简历系统
 
 数据驱动的多版本简历系统：内容与展示分离，4 个求职意向版本，密码保护的管理后台，一键分享/导出。
 
@@ -283,6 +283,50 @@ git config --global --unset https.proxy
 
 ---
 
+
+## 双分支部署流程
+
+本项目采用**双分支隔离部署**策略：
+
+| 分支 | 环境 | 地址 | 触发方式 |
+|---|---|---|---|
+| **test** | 测试环境 | http://192.168.50.100:3002/ai | 推送到 test 自动部署 |
+| **main** | 生产环境 | https://resume.zxz0608.com/ai | PR 合并到 main 自动部署 |
+
+### 工作流程
+
+`
+开发 → PR 合并到 test → 自动部署测试环境
+                        ↓
+                   测试通过后
+                        ↓
+              PR 合并到 main → 自动部署生产环境
+`
+
+### 日常开发
+
+`ash
+# 1. 创建功能分支
+git checkout -b feature/xxx
+
+# 2. 开发完成后，合并到 test 分支
+git checkout test
+git merge feature/xxx
+git push origin test
+# → 自动部署到测试环境
+
+# 3. 测试通过后，创建 PR 合并到 main
+gh pr create --base main --head test --title "deploy: 合并 test 到 main"
+# 或在 GitHub 网页上创建 PR
+# → 自动部署到生产环境
+`
+
+### 分支保护
+
+- **main 分支**：必须通过 PR 合并，禁止直接推送
+- **test 分支**：可直接推送，快速迭代
+
+
 ## 版本管理
 
 见 [CHANGELOG.md](CHANGELOG.md)。遵循语义化版本规范。
@@ -311,3 +355,4 @@ git config --global --unset https.proxy
 ## License
 
 MIT
+
