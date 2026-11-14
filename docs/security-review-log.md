@@ -1,5 +1,32 @@
 # 安全审查日志
 
+## 2026-11-15 完整周期审查（v1.6.0 CI/CD 加固后复核）
+
+- **范围**：全部依赖 + 全部对外接口 + 信任边界 + PR #11 改动面（CI/CD 脚本/workflow/凭据处置）
+- **联网核验**：✅ 已核验（官方公告原文 + OSV/GHSA + 服务器实测）
+  - **Node.js v24.22.1**（服务器实测）：2026-10-21 安全 releases 修复 10 项漏洞（含高危 CVE-2026-111497 Brotli 解码器越界写 RCE，影响 24.x < 24.22.1）——当前版本即修复版，**不受影响**。公告：TWCERT https://www.twcert.org.tw/tw/cp-104-11309-2266c-1.html 、NVDB 提示 https://mp.weixin.qq.com/s/2VXT7X-DvrJHkEwKokRJ7A 。注意 24.22.1 是最低修复版，后续安全 releases 需跟进
+  - **PM2 7.1.2**（服务器实测）：ReDoS GHSA-x5gf-qvw8-r2rm 影响 < 7.0.0，不受影响（https://osv.dev/vulnerability/GHSA-x5gf-qvw8-r2rm ）；捆绑 ws **8.21.0** ≥ 8.20.1，CVE-2026-45736（ws websocket.close 未初始化内存泄露，Moderate CVSS 4.4）不受影响（https://github.com/Unitech/pm2/issues/6116 ）
+  - **GSAP 3.12.5 / ScrollTrigger 3.12.5**：复查无安全公告（与 2026-10-31 结论一致）
+  - **npm audit**：不适用（零依赖，无 package-lock.json）
+  - **Python 3.14.5**：test/test.py 仅标准库，无第三方包，OSV 不适用
+- **PR #11 改动面复核**：
+  - 当前代码树零真实密码（grep 全树：仅 test 占位符 testpass123 / start.bat 本地默认 admin123）
+  - git 历史残留旧密码已轮换作废（P1 处置维持，见下方 2026-11-15 增量条目）
+  - `~/.secrets/resume.env` 服务器实测 `-rw-------`（600），目录 700
+  - ci-deploy.sh：`set -euo pipefail` + ERR trap 自动回滚 + 密码不回显（printf 直写 .env，600）✅
+  - .gitattributes 强制 *.sh/*.yml/*.py LF ✅；.gitignore 覆盖 .env/.tmp/日志 ✅
+  - workflow 仅 `push`（test/main）+ `workflow_dispatch` 触发，**无 pull_request_target** → fork PR 无法在自托管 runner 上执行代码 ✅
+- **server.js 安全控制抽查**（自 v1.5.0 加固后未变更，本次 PR #11 未触及）：validateResumeData / 登录限流（5 次 15 分钟锁 IP）/ XSS 转义（u003c/u003e）/ path.resolve 防穿越 / CSP / X-Frame-Options / admin123 拒绝——全部在位 ✅
+- **信任边界**（不变）：浏览器 → Cloudflare Tunnel（TLS）→ localhost:3000；外部输入面 /api/login（限流）、/api/save（鉴权+校验）、/api/upload（鉴权+魔数+2MB+白名单+固定文件名）、静态文件（防穿越）；新增链路：git push → GitHub → 自托管 runner → 执行仓库脚本（可读 ~/.secrets）——仅仓库协作者可触发，单用户仓库，接受
+- **P0 阻断**：无
+- **P1 缓解**：无（11-14 的 P1 凭据泄露已闭环：轮换 + 出库 + 删除死脚本）
+- **P2 已知**：
+  - P2-3 Node 24.22.1 为最低修复版——持续关注后续 Node 安全 releases（无现行动作）
+  - P2-1（沿用）start.bat 本地默认 admin123——仅本地开发用，接受
+  - P2-4（沿用）旧密码存于公开 git 历史——已轮换无效力，改写公网历史成本高且属假安全，接受
+  - P2-5 v1.6.0 起 .env 不写 HOST（默认 127.0.0.1），测试环境 3002 仅服务器本机可达——安全性提升；副作用是局域网无法直接访问测试环境（如需 LAN 联调再评估）
+- **结论**：✅ 通过。无 P0/P1，运行时组件均在已修复版本，无新增攻击面。下次周期审查：2026-12-15（每月一次）。
+
 ## 2026-11-15 增量检查 + P1 凭据泄露处置（本次变更：CI/CD 加固）
 
 - **距上次周期审查**：15 天（上次 2026-10-31，周期每月一次）
