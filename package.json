@@ -1,7 +1,7 @@
-﻿{
+{
   "name": "resume",
   "version": "1.6.0",
-  "description": "璧靛厛鍝?- 鍙鐞嗙殑缃戦〉绠€鍘嗙郴缁燂紙澶氱増鏈?+ 绠＄悊鍚庡彴 + 瀹夊叏鍔犲浐锛?,
+  "description": "赵先哲 - 可管理的网页简历系统（多版本 + 管理后台 + 安全加固）",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

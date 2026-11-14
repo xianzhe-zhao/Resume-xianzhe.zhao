@@ -85,7 +85,7 @@
 
 ### C1 部署脚本 fail-fast
 - 前置：ci-deploy.sh 被 deploy-test.yml / deploy-prod.yml 的 Deploy 步骤调用
-- 后置：脚本启用 `set -euo pipefail`；rsync 失败、.env 写入失败、pm2 start 失败 → 脚本以非零退出，workflow 在 Deploy 步骤标红（不再出现"服务没起来但 ✅ 部署完成"）
+- 后置：脚本启用 `set -euo pipefail`；rsync 失败、.env 写入失败、pm2 start 失败 → 脚本以非零退出，workflow 在 Deploy 步骤标红（不再出现"服务没起来但 ✅ 部署完成"）；pm2 start 之后追加健康检查（`/ai` 20 秒内须返回 200，因 pm2 start 秒回成功 ≠ 服务可用，应用可能启动即崩）——健康检查失败同样在 Deploy 步骤标红并触发回滚
 - 失败：非关键步骤（旧备份清理）失败 → 输出 WARN 继续执行，不中止
 - 不变式：成功路径产物与旧版一致（同步范围、.env 内容结构、进程名、端口）
 
@@ -97,7 +97,7 @@
 
 ### C3 部署失败自动回滚（兑现 dual-branch spec C2/C4 承诺）
 - 前置：本次部署已创建备份目录（`{TARGET_DIR}-backup-{时间戳}`）
-- 后置：脚本以 trap 捕获失败 → 将最近备份恢复到 TARGET_DIR → 以备份中的 .env 重启 PM2 进程 → 以非零退出；workflow Verify 步骤保持独立兜底
+- 后置：脚本以 trap 捕获失败（含 pm2 start 失败与健康检查失败）→ 将最近备份恢复到 TARGET_DIR → 以备份中的 .env 重启 PM2 进程 → 以非零退出；workflow Verify 步骤保持独立兜底
 - 失败：首次部署（无备份可回滚）→ 直接非零退出，明确提示"无备份可回滚"
 - 不变式：回滚后环境 = 失败前版本（代码 + .env + 进程）；备份保留策略（最近 5 个）不变；豹豹助手进程不被触碰（只操作 resume / resume-test 两个进程名）
 

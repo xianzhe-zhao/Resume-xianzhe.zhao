@@ -139,6 +139,27 @@ sleep 2
 echo "启动 PM2 进程：$PM2_NAME (端口 $TARGET_PORT)"
 cd "$TARGET_DIR"
 "$PM2" start server.js --name "$PM2_NAME"
+
+# ---- 5.5 健康检查：pm2 start 秒回成功 ≠ 服务可用（应用可能启动即崩）----
+# 最多等 20 秒拿 HTTP 200；拿不到 → 判定部署失败 → 触发回滚
+HEALTH_URL="http://127.0.0.1:$TARGET_PORT/ai"
+HEALTH_OK=0
+for i in $(seq 1 20); do
+    HTTP_CODE=$(curl -s -o /dev/null -m 2 -w '%{http_code}' "$HEALTH_URL" 2>/dev/null || true)
+    if [ "$HTTP_CODE" = "200" ]; then
+        HEALTH_OK=1
+        break
+    fi
+    sleep 1
+done
+if [ "$HEALTH_OK" -ne 1 ]; then
+    echo "❌ 健康检查失败：20 秒内 $HEALTH_URL 未返回 200（应用可能启动即崩）"
+    echo "--- 最近错误日志 ---"
+    tail -n 10 "$PM2_HOME/logs/$PM2_NAME-error.log" 2>/dev/null || true
+    false  # 显式失败：触发 ERR trap -> 自动回滚（exit 1 不触发 ERR trap）
+fi
+echo "健康检查通过：$HEALTH_URL = 200"
+
 "$PM2" save >/dev/null 2>&1 || echo "WARN: pm2 save 失败（不影响本次部署，resurrect 列表未更新）"
 
 trap - ERR
