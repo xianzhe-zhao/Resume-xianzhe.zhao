@@ -7,6 +7,21 @@ const path = require('path');
 const crypto = require('crypto');
 const zlib = require('zlib');
 
+// 读取 .env 文件（如果存在）
+const envFile = path.join(__dirname, '.env');
+if (fs.existsSync(envFile)) {
+  fs.readFileSync(envFile, 'utf8').split('\n').forEach(function (line) {
+    line = line.trim();
+    if (!line || line.startsWith('#')) return;
+    var eq = line.indexOf('=');
+    if (eq > 0) {
+      var key = line.substring(0, eq).trim();
+      var val = line.substring(eq + 1).trim();
+      if (!process.env[key]) process.env[key] = val;
+    }
+  });
+}
+
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 const HOST = process.env.HOST || '127.0.0.1'; // 默认只监听本地，通过反向代理暴露
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
