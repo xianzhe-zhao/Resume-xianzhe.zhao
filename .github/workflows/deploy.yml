@@ -19,6 +19,7 @@ jobs:
           MAX_RETRIES=5
           RETRY_DELAY=60
           RETRY_COUNT=0
+          WORK_DIR="$GITHUB_WORKSPACE"
           
           echo "=== 开始拉取代码（最多重试 $MAX_RETRIES 次）==="
           
@@ -27,19 +28,25 @@ jobs:
               echo ""
               echo ">>> 第 $RETRY_COUNT 次尝试..."
               
-              # 清理旧的工作目录
-              if [ -d "$GITHUB_WORKSPACE/.git" ]; then
-                  rm -rf "$GITHUB_WORKSPACE/.git"
+              # 彻底清理工作目录
+              if [ -d "$WORK_DIR" ]; then
+                  echo "清理工作目录: $WORK_DIR"
+                  rm -rf "$WORK_DIR"
+                  mkdir -p "$WORK_DIR"
               fi
               
               # 尝试拉取代码
+              echo "克隆仓库..."
               if git clone --depth=1 --branch=main \
                   https://github.com/${{ github.repository }}.git \
-                  "$GITHUB_WORKSPACE" 2>&1; then
+                  "$WORK_DIR" 2>&1; then
                   echo ""
                   echo "✅ 代码拉取成功（第 $RETRY_COUNT 次尝试）"
-                  cd "$GITHUB_WORKSPACE"
-                  git checkout ${{ github.sha }} 2>/dev/null || true
+                  cd "$WORK_DIR"
+                  # 检出指定 commit
+                  if git fetch --depth=1 origin ${{ github.sha }} 2>/dev/null; then
+                      git checkout ${{ github.sha }} 2>/dev/null || true
+                  fi
                   exit 0
               else
                   echo "❌ 第 $RETRY_COUNT 次失败"
