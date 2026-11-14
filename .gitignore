@@ -23,3 +23,10 @@ push-via-api.js
 
 # 大文件预览图（防火墙按大小拦截，不入库）
 preview.png
+
+# 运行时解包产物（服务器启动时由 .gz 自动生成）
+public/gsap.min.js
+public/ScrollTrigger.min.js
+
+# Python 缓存
+__pycache__/

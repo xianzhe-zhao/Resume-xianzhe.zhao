@@ -168,15 +168,13 @@
     }
   };
 
-  var VER_SHORT = { ai: 'AI', it: 'IT', test: '测试', erp: 'ERP' };
-  var VER_SHORT_EN = { ai: 'AI', it: 'IT', test: 'Test', erp: 'ERP' };
   /* NOW 状态卡按版本切换 */
   var NOW_TAG = {
     zh: { ai: 'AI 落地', it: '系统稳定', test: '质量保障', erp: 'ERP 交付' },
     en: { ai: 'AI in prod', it: 'System stable', test: 'QA driven', erp: 'ERP delivery' }
   };
 
-  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
   /* en 字段缺失时回退中文值（C12 失败行为） */
   function fb(en, zh) {
@@ -186,15 +184,15 @@
     return en;
   }
 
-  /* 按当前语言取数据源 */
+  /* 按当前语言取数据源（ver 兜底空对象，防数据缺失时整页白屏） */
   function dataFor() {
     var ui = UI[lang];
     var e = (lang === 'en') ? R.en : null;
-    if (!e || !e.base) { return { base: R.base, ver: R.version, ui: ui }; }
+    if (!e || !e.base) { return { base: R.base || {}, ver: R.version || {}, ui: ui }; }
     var ver = (e.versions && e.versions[R.versionKey]) || null;
     return {
       base: e.base,
-      ver: ver || R.version,
+      ver: ver || R.version || {},
       zhBase: R.base,
       zhVer: R.version,
       ui: ui
@@ -520,7 +518,7 @@
       s += '<div class="proj-info">';
       s += '<span class="proj-badge">' + esc(fb(p.badge, lang === 'en' ? 'Solo-built' : '独立开发')) + '</span>';
       s += '<h3>' + esc(fb(p.title, '')) + '</h3>';
-      if (p.link) s += '<a class="proj-link" href="' + esc(p.link) + '" target="_blank" rel="noopener">' + esc(p.link.replace(/^https?:\/\//, '')) + ' →</a>';
+      if (p.link && typeof p.link === 'string' && /^https?:\/\//i.test(p.link)) s += '<a class="proj-link" href="' + esc(p.link) + '" target="_blank" rel="noopener noreferrer">' + esc(p.link.replace(/^https?:\/\//, '')) + ' →</a>';
       s += '<p class="proj-desc">' + esc(fb(p.desc, '')) + '</p>';
       s += '<ul class="proj-items">';
       (p.items || []).forEach(function (it, idx) {

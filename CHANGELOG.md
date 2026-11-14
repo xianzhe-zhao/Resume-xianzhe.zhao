@@ -2,6 +2,22 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 
+## [1.7.0] - 2026-11-15
+
+### 安全修复（代码层全面审查，spec：`docs/specs/2026-11-15-security-fixes.md`，审查记录：`docs/security-review-log.md`）
+
+- **P0 修复**：
+  - **畸形 URL 崩溃（DoS）**：`/%ZZ` 等非法 percent-encoding 使 `safeStatic` 抛 URIError 导致进程退出（任何匿名访客可单请求打崩服务，实测复现）——safeStatic 整体 try/catch + 请求处理器兜底 catch，任何未捕获异常不再终止进程
+  - **管理后台保存损坏手机号**：admin.js 误用脱敏接口 `/api/data` 加载编辑器，保存时把 `176****6834` 写回文件覆盖真实号码（实测复现）——改用鉴权接口 `/api/data/full`
+- **P1 修复**：
+  - readBody 改 Buffer 收集再统一解码（原字符串拼接跨 TCP 分块损坏多字节中文，实测复现）
+  - 登录限流防绕过：客户端 IP 取 `cf-connecting-ip` / XFF **末段**（原取 XFF 首段可伪造，无限爆破）；loginAttempts 过期清理 + 10000 条硬上限
+  - 项目链接 scheme 白名单（`^https?://`），`javascript:` 链接不再渲染为可点击
+- **P2 修复**：esc() 补单引号转义；`D.ver`/`p.link` 空值兜底防白屏；replace 特殊模式（`$&`/`$'`）注入防护（函数形式替换）；admin 未保存提醒脏标记生效；密码常量时间比较（sha256+timingSafeEqual）；MIME 补 `.woff2`；404/logout 补安全头；上传魔数校验收紧（超短 buffer 拒绝、webp 验 RIFF+WEBP）；数据校验黑名单扩展（iframe/object/embed/javascript:）
+- **start.bat 修复**：UTF-8 代码页 65001；移除硬编码他人用户路径与密码明文回显；无 .env 时提示输入（v1.5.0 起拒绝 admin123，旧脚本实际已无法启动）
+- **垃圾清理**：删除废弃脚本 `scripts/{deploy.sh, deploy.bat, deploy-remote.sh, generate-pr.sh, fix-readme.py}`（前两个含 admin123 默认回退隐患）；package.json 移除对应 npm scripts
+- **测试**：新增 30 项 SF 用例（spec C1-C12 核销），总计 276 项全部通过
+
 ## [1.6.0] - 2026-11-15
 
 ### 变更
