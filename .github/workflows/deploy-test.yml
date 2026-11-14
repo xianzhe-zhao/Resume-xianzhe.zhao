@@ -10,6 +10,8 @@ jobs:
     name: Test & Deploy to Test Env
     runs-on: self-hosted
     if: github.ref == 'refs/heads/test'
+    env:
+      ADMIN_PASSWORD: Resume@Secure2026!
 
     steps:
       - name: Checkout code
@@ -87,10 +89,14 @@ jobs:
       - name: Verify deployment
         run: |
           sleep 3
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://192.168.50.100:3004/ai || echo "000")
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3004/ai || echo "000")
           if [ "$HTTP_CODE" = "200" ]; then
             echo "✅ 测试环境验证成功：HTTP $HTTP_CODE"
           else
             echo "❌ 测试环境验证失败：HTTP $HTTP_CODE"
+            echo "检查 PM2 日志："
+            cat /home/xianzhe/.pm2/logs/resume-test-error.log 2>/dev/null | tail -5
+            echo "检查 .env 文件："
+            cat /home/xianzhe/Project/resume-test/.env 2>/dev/null
             exit 1
           fi
