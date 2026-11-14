@@ -110,7 +110,7 @@
 ### C5 密码轮换 + 安全记录
 - 前置：旧密码已泄露于公网 git 历史（仓库 PUBLIC）
 - 后置：用户指定新密码（11 位，含符号；长度低于建议值已告知，由 /api/login 的 5 次/15 分钟 IP 锁定缓解）→ 写入服务器 `~/.secrets/resume.env` → 随 test / prod 部署更新两环境 .env → `docs/security-review-log.md` 新增条目（泄露事实、轮换动作、日期、剩余风险：git 历史仍含旧密码但已作废）
-- 失败：任一环境旧密码仍可登录 `/api/login` → 轮换未完成，不得合并 main
+- 失败：test 环境旧密码在合并前仍可登录 `/api/login` → 轮换未开始，不得合并 main；合并部署后 prod 旧密码仍可登录 → 轮换未完成，立即回滚处理
 - 不变式 🔒：旧密码（原 4 文件中的明文值）在两环境均失效；新密码不写入任何 git 文件
 
 ### C6 PM2 解析健壮化
@@ -160,10 +160,15 @@
 
 | 条款 | 测试用例 | 结果 | 路径真实性 |
 |---|---|---|---|
-| C1 | test_c1_fail_fast | 待填 | bash -n + 故障注入 |
-| C2 | test_c2_narrowed_tolerances | 待填 | 代码审查 + 故障注入 |
-| C3 | test_c3_auto_rollback | 待填 | 服务器 /tmp 故障注入 |
-| C4 | test_c4_secret_out_of_git | 待填 | git grep + 服务器实跑 |
-| C5 | test_c5_password_rotation | 待填 | 登录接口实测（新/旧密码） |
-| C6 | test_c6_pm2_resolution | 待填 | 服务器实跑解析逻辑 |
-| C7 | test_c7_docs_version_sync | 待填 | 文本断言 |
+| C1 | `test_c1_fail_fast` | ✅ | 服务器故障注入（bash -n + 注入 pm2 start 失败 → rc=1，Deploy 步骤如实标红） |
+| C2 | `test_c2_narrowed_tolerances` | ✅ | 代码审查（关键步骤零吞错）+ 故障注入（失败未被掩盖） |
+| C3 | `test_c3_auto_rollback` | ✅ | 服务器 /tmp 故障注入两条路径：pm2 start 失败、启动即崩（健康检查失败）→ 均触发回滚（内容 + 旧 .env 恢复、备份目录创建、非零退出）；12 断言全过 |
+| C4 | `test_c4_secret_out_of_git` | ✅ | git grep 旧密码字面量零命中 + secrets 缺失即失败（T1）+ 部署日志无密码（T2f）+ E2E workflow 日志人工核验 |
+| C5 | `test_c5_password_rotation` | ✅ | 登录接口实测：test 环境新密码 `{"ok":true}`、旧密码 401；prod 随合并自动轮换（A7 核验） |
+| C6 | `test_c6_pm2_resolution` | ✅ | 服务器实跑解析逻辑（fakehome symlink 场景）+ pm2 update 后 13 进程 online（豹豹 3 件套前后对比） |
+| C7 | `test_c7_docs_version_sync` | ✅ | 文本断言：package.json 1.6.0 / CHANGELOG 1.5.0+1.6.0 / README / ci-cd-guide / security-review-log |
+
+- 核销率：7/7；故障注入测试脚本（一次性，不入库）：12 断言 PASS 12 / FAIL 0
+- 分级回归：轻量冒烟（不触及业务代码）——`python test/test.py` 246 项全过；test 环境 E2E：workflow 三步全绿（Run tests / Deploy / Verify），/ai = 200，pm2 resume-test online @ 1.6.0
+- 真实事故一枚（已修复入账）：首次推送时 PowerShell 编码损坏 package.json（BOM+CRLF+乱码）导致应用崩溃——恰被新体系暴露（旧体系会误报"部署完成"）；健康检查回滚路径由此补强（T3）
+- 影响面（来自第 2 节）：ci-deploy.sh、2 个 workflow、package.json、CHANGELOG、README、ci-cd-guide、security-review-log、.gitignore、.gitattributes（新增）、删除 deploy-security.sh
