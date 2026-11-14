@@ -5,7 +5,7 @@
   var curVer = 'ai';     // 当前编辑的版本
   var dirty = false;     // 是否有未保存改动
 
-  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
   /* ============ 登录页 ============ */
   function renderLogin(msg, msgType) {
@@ -34,11 +34,13 @@
   }
 
   /* ============ 加载数据 ============ */
+  // 必须用 /api/data/full（完整数据）：/api/data 是脱敏版，会把手机号变成 176****xxxx，
+  // 若编辑后保存会把脱敏值写回文件，永久损坏真实数据
   function loadData() {
-    fetch('/api/data').then(function (r) { return r.json(); }).then(function (d) {
+    fetch('/api/data/full').then(function (r) { return r.json(); }).then(function (d) {
       DATA = d;
       renderEditor();
-    }).catch(function () { renderLogin('数据加载失败', 'err'); });
+    }).catch(function () { renderLogin('数据加载失败（需重新登录）', 'err'); });
   }
 
   /* ============ 编辑器 ============ */
@@ -48,7 +50,7 @@
     var v = vers[curVer];
 
     var tabs = verKeys.map(function (k) {
-      return '<span class="ver-tab ' + (k === curVer ? 'active' : '') + '" data-ver="' + k + '">' + esc(vers[k].label) + '</span>';
+      return '<span class="ver-tab ' + (k === curVer ? 'active' : '') + '" data-ver="' + esc(k) + '">' + esc(vers[k].label) + '</span>';
     }).join('');
 
     root.innerHTML =
@@ -111,9 +113,9 @@
       verKeys.map(function (k) {
         return '<div class="share-item"><div><div style="font-weight:600;font-size:14px">' + esc(vers[k].label) + '（' + esc(vers[k].title) + '）</div>' +
           '<div class="url">' + esc(location.origin + '/' + k) + '</div></div>' +
-          '<div class="actions"><button class="mini-btn" data-copy="' + k + '">复制链接</button>' +
-          '<button class="mini-btn accent" data-export="' + k + '">导出 HTML</button>' +
-          '<a class="mini-btn" href="/' + k + '" target="_blank">预览</a></div></div>';
+          '<div class="actions"><button class="mini-btn" data-copy="' + esc(k) + '">复制链接</button>' +
+          '<button class="mini-btn accent" data-export="' + esc(k) + '">导出 HTML</button>' +
+          '<a class="mini-btn" href="/' + esc(k) + '" target="_blank">预览</a></div></div>';
       }).join('') +
       '</div>' +
 
@@ -247,12 +249,13 @@
       fetch('/gsap.min.js').then(function (r) { return r.text(); }),
       fetch('/ScrollTrigger.min.js').then(function (r) { return r.text(); })
     ]).then(function (parts) {
+      // 用函数形式替换，防数据内容含 $& / $' 等 replace 特殊模式被错误展开
       var html = parts[0]
-        .replace('<link rel="stylesheet" href="/style.css">', '<style>' + parts[1] + '</style>')
-        .replace('/*__RESUME_DATA__*/', 'window.RESUME = ' + payload + ';')
-        .replace('<script src="/gsap.min.js"></script>', '<script>' + parts[3] + '</script>')
-        .replace('<script src="/ScrollTrigger.min.js"></script>', '<script>' + parts[4] + '</script>')
-        .replace('<script src="/app.js"></script>', '<script>' + parts[2] + '</script>');
+        .replace('<link rel="stylesheet" href="/style.css">', function () { return '<style>' + parts[1] + '</style>'; })
+        .replace('/*__RESUME_DATA__*/', function () { return 'window.RESUME = ' + payload + ';'; })
+        .replace('<script src="/gsap.min.js"></script>', function () { return '<script>' + parts[3] + '</script>'; })
+        .replace('<script src="/ScrollTrigger.min.js"></script>', function () { return '<script>' + parts[4] + '</script>'; })
+        .replace('<script src="/app.js"></script>', function () { return '<script>' + parts[2] + '</script>'; });
       var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -263,6 +266,9 @@
   }
 
   /* ============ 启动：检查登录状态 ============ */
+  // 脏标记（事件委托，绑定一次，覆盖后续所有 innerHTML 重渲染的输入控件）
+  root.addEventListener('input', function () { dirty = true; });
+  root.addEventListener('change', function () { dirty = true; });
   fetch('/api/check').then(function (r) { return r.json(); }).then(function (res) {
     if (res.authed) { loadData(); } else { renderLogin(); }
   }).catch(function () { renderLogin(); });

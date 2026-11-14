@@ -44,6 +44,7 @@ const MAX_BODY_SIZE = 1024 * 1024; // 1MB 请求体限制
 const loginAttempts = {}; // IP 登录尝试记录
 const LOGIN_MAX_ATTEMPTS = 5; // 5 次失败后锁定
 const LOGIN_LOCK_TIME = 15 * 60 * 1000; // 锁定 15 分钟
+const LOGIN_ATTEMPTS_MAX_KEYS = 10000; // 防 XFF 伪造导致的内存膨胀上限
 
 // 安全响应头（所有响应统一添加）
 const SECURITY_HEADERS = {
@@ -65,11 +66,14 @@ function validateResumeData(data) {
   }
   // 检查 base 中必要字段
   if (!data.base.name || typeof data.base.name !== 'string') return '缺少姓名';
-  // 检查字段值中不含危险内容（防存储型 XSS）
+  // 检查字段值中不含危险内容（防存储型 XSS，纵深防御：黑名单 + 前端 esc 双保险）
   function checkString(obj, path) {
     if (typeof obj === 'string') {
-      if (obj.includes('</script') || obj.includes('<script')) {
-        return '字段 ' + path + ' 包含不允许的脚本标签';
+      const dangerous = ['</script', '<script', '<iframe', '<object', '<embed', 'javascript:'];
+      for (const d of dangerous) {
+        if (obj.includes(d)) {
+          return '字段 ' + path + ' 包含不允许的内容（' + d + '）';
+        }
       }
     } else if (obj && typeof obj === 'object') {
       for (const key of Object.keys(obj)) {
@@ -112,7 +116,7 @@ function sendJSON(res, code, obj, headers) {
 }
 function readBody(req) {
   return new Promise(function (resolve, reject) {
-    let b = '';
+    const chunks = []; // 以 Buffer 收集，最后统一解码，防止多字节 UTF-8 跨块损坏
     let size = 0;
     req.on('data', function (c) {
       size += c.length;
@@ -121,19 +125,28 @@ function readBody(req) {
         req.destroy();
         return;
       }
-      b += c;
+      chunks.push(c);
     });
-    req.on('end', function () { resolve(b); });
+    req.on('end', function () { resolve(Buffer.concat(chunks).toString('utf8')); });
     req.on('error', function (e) { reject(e); });
   });
 }
 
 // 获取客户端 IP（支持反向代理）
+// 注意取值顺序与 XFF 解析方向：
+//   - cf-connecting-ip 由 Cloudflare 边缘强制覆盖，客户端无法伪造（优先）
+//   - X-Forwarded-For 链中客户端可伪造前段，真实 IP 在末段，取 LAST 而非 FIRST
 function getClientIP(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-         req.headers['x-real-ip'] ||
-         req.connection?.remoteAddress ||
-         'unknown';
+  const cf = req.headers['cf-connecting-ip'];
+  if (cf) return String(cf).trim();
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) {
+    const parts = String(xff).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1]; // 末段 = 最近一跳追加的真实 IP
+  }
+  const real = req.headers['x-real-ip'];
+  if (real) return String(real).trim();
+  return (req.connection && req.connection.remoteAddress) || 'unknown';
 }
 
 // 检查登录限流
@@ -156,17 +169,8 @@ function checkLoginRate(ip) {
   return true;
 }
 
-// 记录登录失败
-function recordLoginFailure(ip) {
-  if (!loginAttempts[ip]) loginAttempts[ip] = { count: 0, lockUntil: 0 };
-  loginAttempts[ip].count++;
-  if (loginAttempts[ip].count >= LOGIN_MAX_ATTEMPTS) {
-    loginAttempts[ip].lockUntil = Date.now() + LOGIN_LOCK_TIME;
-    console.warn('[SECURITY] IP ' + ip + ' 登录失败 ' + LOGIN_MAX_ATTEMPTS + ' 次，锁定 15 分钟');
-  }
-}
-
-// 清理过期会话（每小时执行一次）
+// 清理过期会话（每小时执行一次）；顺带清理登录尝试记录，防伪造 IP 无限堆积
+const ATTEMPT_TTL = 24 * 60 * 60 * 1000; // 失败记录 24 小时后过期
 function cleanExpiredSessions() {
   const now = Date.now();
   let cleaned = 0;
@@ -177,29 +181,52 @@ function cleanExpiredSessions() {
     }
   }
   if (cleaned > 0) console.log('[SESSION] 清理过期会话 ' + cleaned + ' 个');
+  let cleanedAttempts = 0;
+  for (const ip in loginAttempts) {
+    const r = loginAttempts[ip];
+    const expired = (r.lockUntil && now > r.lockUntil) || (now - (r.lastFail || 0) > ATTEMPT_TTL);
+    if (expired) { delete loginAttempts[ip]; cleanedAttempts++; }
+  }
+  if (cleanedAttempts > 0) console.log('[SECURITY] 清理过期登录尝试记录 ' + cleanedAttempts + ' 条');
 }
 setInterval(cleanExpiredSessions, 60 * 60 * 1000);
+
+// 记录登录失败
+function recordLoginFailure(ip) {
+  if (!loginAttempts[ip]) loginAttempts[ip] = { count: 0, lockUntil: 0, lastFail: 0 };
+  loginAttempts[ip].count++;
+  loginAttempts[ip].lastFail = Date.now();
+  // 硬上限：防伪造 IP 伪装出无限计数桶（极端情况下整体重置，牺牲计数保可用性）
+  if (Object.keys(loginAttempts).length > LOGIN_ATTEMPTS_MAX_KEYS) {
+    console.warn('[SECURITY] 登录尝试记录超上限，整体重置');
+    for (const k in loginAttempts) delete loginAttempts[k];
+  }
+  if (loginAttempts[ip].count >= LOGIN_MAX_ATTEMPTS) {
+    loginAttempts[ip].lockUntil = Date.now() + LOGIN_LOCK_TIME;
+    console.warn('[SECURITY] IP ' + ip + ' 登录失败 ' + LOGIN_MAX_ATTEMPTS + ' 次，锁定 15 分钟');
+  }
+}
 // 安全静态文件服务：严格路径校验
 function safeStatic(p) {
-  // 解码 URL 编码，防止 %2e%2e 绕过
-  const decoded = decodeURIComponent(p);
-  // 规范化路径，解析所有 .. 和 .
-  const normalized = path.normalize(decoded);
-  // 构建完整路径
-  const fp = path.resolve(PUBLIC_DIR, '.' + normalized);
-  // 严格检查：必须在 PUBLIC_DIR 内
-  if (!fp.startsWith(PUBLIC_DIR + path.sep) && fp !== PUBLIC_DIR) {
-    return null;
-  }
-  // 检查文件是否存在且是文件
   try {
+    // 解码 URL 编码，防止 %2e%2e 绕过；畸形编码（如 %ZZ）抛 URIError 时按 404 处理
+    const decoded = decodeURIComponent(p);
+    // 规范化路径，解析所有 .. 和 .
+    const normalized = path.normalize(decoded);
+    // 构建完整路径
+    const fp = path.resolve(PUBLIC_DIR, '.' + normalized);
+    // 严格检查：必须在 PUBLIC_DIR 内
+    if (!fp.startsWith(PUBLIC_DIR + path.sep) && fp !== PUBLIC_DIR) {
+      return null;
+    }
+    // 检查文件是否存在且是文件
     const stat = fs.statSync(fp);
     return stat.isFile() ? fp : null;
   } catch (e) {
-    return null;
+    return null; // 畸形 URL / 不存在的路径统一 404
   }
 }
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 
 /* ---------- 启动时解压 vendored 库（.gz -> .js） ----------
    公司防火墙拦截 >35KB 的上传，gsap/ScrollTrigger 以 .gz 形式入库，
@@ -233,9 +260,10 @@ function servePublicPage(res, version) {
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
     .replace(/&/g, '\\u0026');
-  
+
   let html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
-  html = html.replace('/*__RESUME_DATA__*/', 'window.RESUME = ' + safePayload + ';');
+  // 用函数形式替换，防数据内容含 $& / $' / $` 等 replace 特殊模式被错误展开
+  html = html.replace('/*__RESUME_DATA__*/', function () { return 'window.RESUME = ' + safePayload + ';'; });
   
   const h = Object.assign({}, SECURITY_HEADERS, {
     'Content-Type': 'text/html; charset=utf-8',
@@ -245,8 +273,32 @@ function servePublicPage(res, version) {
   res.end(html);
 }
 
+// 密码常量时间比较（防时序侧信道）：先 SHA-256 归一长度，再 timingSafeEqual
+function safePasswordCompare(input, expected) {
+  try {
+    const a = crypto.createHash('sha256').update(String(input), 'utf8').digest();
+    const b = crypto.createHash('sha256').update(String(expected), 'utf8').digest();
+    return crypto.timingSafeEqual(a, b);
+  } catch (e) {
+    return false;
+  }
+}
+
 /* ---------- 路由 ---------- */
 const server = http.createServer(async function (req, res) {
+  try {
+    await handleRequest(req, res);
+  } catch (e) {
+    // 兜底：任何未捕获异常（含畸形 URL 的 URIError）不得终止进程
+    console.error('[ERROR] 请求处理异常 ' + req.url + ': ' + e.message);
+    if (!res.headersSent) {
+      res.writeHead(500, Object.assign({}, SECURITY_HEADERS, { 'Content-Type': 'text/plain; charset=utf-8' }));
+    }
+    try { res.end('500 Internal Server Error'); } catch (e2) { /* 已断开 */ }
+  }
+});
+
+async function handleRequest(req, res) {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
 
@@ -286,7 +338,7 @@ const server = http.createServer(async function (req, res) {
     
     try {
       const obj = JSON.parse(body || '{}');
-      if (obj.password === ADMIN_PASSWORD) {
+      if (safePasswordCompare(obj.password, ADMIN_PASSWORD)) {
         // 登录成功，清除失败记录
         delete loginAttempts[ip];
         const token = crypto.randomBytes(16).toString('hex');
@@ -305,7 +357,10 @@ const server = http.createServer(async function (req, res) {
 
   if (p === '/api/logout' && req.method === 'POST') {
     const sid = getSession(req); if (sid) delete sessions[sid];
-    res.writeHead(200, { 'Set-Cookie': 'resume_session=; HttpOnly; Path=/; Max-Age=0' });
+    res.writeHead(200, Object.assign({}, SECURITY_HEADERS, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Set-Cookie': 'resume_session=; HttpOnly; Path=/; Max-Age=0'
+    }));
     return res.end('{"ok":true}');
   }
 
@@ -350,20 +405,26 @@ const server = http.createServer(async function (req, res) {
       const safeExt = ext === 'jpeg' ? 'jpg' : ext;
       const buf = Buffer.from(m[2], 'base64');
       if (buf.length > 2 * 1024 * 1024) return sendJSON(res, 400, { ok: false, error: '图片过大（限 2MB）' });
-      // 验证图片魔数（magic bytes），防止伪装扩展名
+      // 验证图片魔数（magic bytes），防止伪装扩展名；超短 buffer 也拒绝（不能跳过校验）
       const magicBytes = {
-        png: Buffer.from([0x89, 0x50, 0x4E, 0x47]),
-        jpg: Buffer.from([0xFF, 0xD8, 0xFF]),
-        gif: Buffer.from([0x47, 0x49, 0x46, 0x38]),
-        webp: Buffer.from([0x52, 0x49, 0x46, 0x46])
+        png: [0x89, 0x50, 0x4E, 0x47],
+        jpg: [0xFF, 0xD8, 0xFF],
+        gif: [0x47, 0x49, 0x46, 0x38],
+        webp: [0x52, 0x49, 0x46, 0x46]
       };
       const expectedMagic = magicBytes[safeExt];
-      if (expectedMagic && buf.length >= expectedMagic.length) {
-        const actualMagic = buf.slice(0, expectedMagic.length);
-        if (!actualMagic.equals(expectedMagic)) {
-          console.warn('[SECURITY] 上传文件魔数不匹配: 期望 ' + safeExt + ', 实际内容不符');
-          return sendJSON(res, 400, { ok: false, error: '图片内容验证失败' });
-        }
+      if (!expectedMagic || buf.length < expectedMagic.length) {
+        return sendJSON(res, 400, { ok: false, error: '图片内容验证失败（文件过短）' });
+      }
+      const actualMagic = buf.slice(0, expectedMagic.length);
+      if (!actualMagic.equals(Buffer.from(expectedMagic))) {
+        console.warn('[SECURITY] 上传文件魔数不匹配: 期望 ' + safeExt + ', 实际内容不符');
+        return sendJSON(res, 400, { ok: false, error: '图片内容验证失败' });
+      }
+      // webp 需进一步校验 RIFF 头后的 WEBP 标识（RIFF 也用于 WAV/AVI 等）
+      if (safeExt === 'webp' && (buf.length < 12 || buf.slice(8, 12).toString('ascii') !== 'WEBP')) {
+        console.warn('[SECURITY] 上传文件非 WEBP（RIFF 容器内容不符）');
+        return sendJSON(res, 400, { ok: false, error: '图片内容验证失败' });
       }
       const uploadsDir = path.join(PUBLIC_DIR, 'uploads');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -398,9 +459,9 @@ const server = http.createServer(async function (req, res) {
     return res.end(fs.readFileSync(fp));
   }
 
-  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.writeHead(404, Object.assign({}, SECURITY_HEADERS, { 'Content-Type': 'text/plain; charset=utf-8' }));
   res.end('404 Not Found');
-});
+}
 
 server.listen(PORT, HOST, function () {
   console.log('Resume server running at http://' + HOST + ':' + PORT);

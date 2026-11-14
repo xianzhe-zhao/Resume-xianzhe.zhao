@@ -1,5 +1,17 @@
 # 安全审查日志
 
+## 2026-11-15 代码层深度安全审查 + 全量修复（v1.7.0）
+
+- **范围**：server.js / public/admin.js / public/app.js / start.bat / scripts/* 全量人工审查 + 本地实测复现 + 联网漏洞模式检索（时序攻击、XFF 伪造、路径穿越、零依赖静态服务器常见错误）
+- **实测复现的问题**（修复前）：
+  - 🔴 P0-V1：`/%ZZ` 畸形 percent-encoding → `safeStatic` 抛 URIError → 进程崩溃（匿名单请求 DoS）
+  - 🔴 P0-V2：admin.js 误用脱敏 `/api/data` 加载编辑器 → 保存覆写真实手机号
+  - 🟠 P1-V3：readBody 字符串拼接跨块损坏多字节中文；P1-V4：XFF 首段可伪造绕过登录限流；P1-V5：项目链接可注入 `javascript:`
+  - 🟡 P2 × 若干：esc 缺单引号、replace 模式注入、dirty 失效、时序比较、MIME/魔数/黑名单杂项
+- **处置**：全部修复（spec `docs/specs/2026-11-15-security-fixes.md` C1-C12，12/12 核销），新增 30 项测试用例（合计 276 项全过），两个 P0 的 PoC 修复后复验通过
+- **垃圾文件**：删除 5 个废弃脚本（deploy.sh / deploy.bat / deploy-remote.sh / generate-pr.sh / fix-readme.py，前两个含 admin123 默认回退隐患）；start.bat 修复 3 处
+- **结论**：✅ P0/P1 清零，无遗留阻塞项
+
 ## 2026-11-15 完整周期审查（v1.6.0 CI/CD 加固后复核）
 
 - **范围**：全部依赖 + 全部对外接口 + 信任边界 + PR #11 改动面（CI/CD 脚本/workflow/凭据处置）

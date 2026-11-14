@@ -412,6 +412,8 @@ def main():
         print("\n[C16] 核心功能回归（不修坏）")
         check("C16 核心回归段全部通过", core_failed == 0, f"核心段已有 {core_failed} 个失败")
         server_src = open(os.path.join(ROOT, "server.js"), encoding="utf-8").read()
+        admin_js_src = open(os.path.join(ROOT, "public", "admin.js"), encoding="utf-8").read()
+        start_bat = open(os.path.join(ROOT, "start.bat"), encoding="utf-8", errors="replace").read()
         check("C16 API 契约不变（6 端点）",
               all(p in server_src for p in ["/api/data", "/api/login", "/api/logout", "/api/check", "/api/save", "/api/upload"]), "")
 
@@ -619,6 +621,129 @@ def main():
         check("C29 路径遍历 /../../../etc/passwd 返回 404", code_traverse == 404, f"got {code_traverse}")
         code_traverse2, _, _ = get("/..%2F..%2F..%2Fetc%2Fpasswd")
         check("C29 路径遍历 URL编码 返回 404", code_traverse2 == 404, f"got {code_traverse2}")
+
+        # ======== [SF] 安全修复 v1.7.0（spec: docs/specs/2026-11-15-security-fixes.md C1–C12）========
+        print("\n[SF] 安全修复 v1.7.0（spec C1–C12）")
+
+        # SF1 (spec C1)：畸形 URL 不崩溃（此前 /%ZZ 会抛 URIError 终止进程）
+        # 用 http.client 发原始路径，防 urllib 自动编码掩盖崩溃路径
+        import http.client as _hc
+        try:
+            _conn = _hc.HTTPConnection(HOST, PORT, timeout=5)
+            _conn.request("GET", "/%ZZ")
+            _resp = _conn.getresponse()
+            code_sf1 = _resp.status
+            _resp.read()
+            _conn.close()
+        except Exception:
+            code_sf1 = 0
+        check("SF1(spec C1) 畸形URL /%ZZ 返回4xx/5xx", 400 <= code_sf1 <= 500, f"got {code_sf1}")
+        code_sf1b, _, _ = get("/ai")
+        check("SF1(spec C1) 畸形URL后 /ai 仍返回200", code_sf1b == 200, f"got {code_sf1b}")
+        check("SF1(spec C1) 服务器进程存活", proc.poll() is None, "进程已退出!")
+
+        # SF2 (spec C2)：管理后台数据完整性（/api/data/full 不脱敏，保存不覆写）
+        code_sf2, body_sf2, _ = get("/api/data/full", {"Cookie": session_cookie})
+        sf2_data = json.loads(body_sf2) if code_sf2 == 200 else {}
+        sf2_phone = sf2_data.get("base", {}).get("phone", "")
+        check("SF2(spec C2) /api/data/full 手机号完整（无****）", "****" not in sf2_phone, f"phone={sf2_phone}")
+
+        # SF3 (spec C3)：大体积中文 body 保存不损坏（此前字符串拼接跨块损坏多字节字符）
+        sf3_data = json.loads(body_sf2)
+        sf3_text = "简历内容测试中文" * 7000  # ~98KB，超过单个 TCP chunk
+        sf3_data["versions"]["ai"]["summary"] = sf3_text
+        code_sf3, _, _ = post("/api/save", sf3_data, {"Cookie": session_cookie})
+        check("SF3(spec C3) ~100KB 中文数据保存成功", code_sf3 == 200, f"got {code_sf3}")
+        code_sf3b, body_sf3b, _ = get("/api/data/full", {"Cookie": session_cookie})
+        sf3_back = json.loads(body_sf3b).get("versions", {}).get("ai", {}).get("summary", "")
+        check("SF3(spec C3) 大体积中文往返无损", sf3_back == sf3_text,
+              f"长度 {len(sf3_back)} vs {len(sf3_text)}, 含替换字符: {'\ufffd' in sf3_back}")
+
+        # SF5 (spec C5)：javascript: 链接被服务端黑名单拒绝 + 前端 scheme 白名单
+        sf5_data = json.loads(body_sf2)
+        if sf5_data.get("base", {}).get("projects"):
+            sf5_data["base"]["projects"][0]["link"] = "javascript:alert(1)"
+            code_sf5, _, _ = post("/api/save", sf5_data, {"Cookie": session_cookie})
+            check("SF5(spec C5) 保存 javascript: 链接被拒绝（400）", code_sf5 == 400, f"got {code_sf5}")
+        check("SF5(spec C5) app.js 链接渲染 scheme 白名单（^https?://）",
+              "https?:\\/\\/" in app_src and "typeof p.link === 'string'" in app_src, "")
+
+        # SF6 (spec C6)：esc() 五字符完整转义 + 空值兜底
+        check("SF6(spec C6) admin.js esc 含单引号转义", ".replace(/'/g, '&#39;')" in admin_js_src, "")
+        check("SF6(spec C6) app.js esc 含单引号转义", ".replace(/'/g, '&#39;')" in app_src, "")
+        check("SF6(spec C6) app.js dataFor ver 空值兜底（防白屏）", "ver || R.version || {}" in app_src, "")
+
+        # SF7 (spec C7)：数据含 replace 特殊模式（$& / $'）按字面渲染
+        sf7_data = json.loads(body_sf2)
+        sf7_name = "赵$&先哲$'哲"
+        sf7_data["base"]["name"] = sf7_name
+        code_sf7, _, _ = post("/api/save", sf7_data, {"Cookie": session_cookie})
+        check("SF7(spec C7) 含 $& 的姓名可保存", code_sf7 == 200, f"got {code_sf7}")
+        code_sf7b, body_sf7b, _ = get("/ai")
+        # 页面 payload 中 & 转义为 \u0026，$' 保持字面；若 replace 特殊模式被展开，$' 处会注入 marker 之后的整段 HTML
+        sf7_expected = "赵$\\u0026先哲$'哲"
+        check("SF7(spec C7) 页面按字面渲染（无 replace 展开）", sf7_expected in body_sf7b, "$&/$' 被 replace 展开损坏")
+        check("SF7(spec C7) admin.js 导出 replace 函数化", "function () { return 'window.RESUME = '" in admin_js_src, "")
+
+        # SF8 (spec C8)：未保存提醒脏标记生效
+        check("SF8(spec C8) admin.js input 事件委托置脏标记",
+              "root.addEventListener('input'" in admin_js_src and "root.addEventListener('change'" in admin_js_src, "")
+
+        # SF9 (spec C9)：密码常量时间比较（行为不变：正确 200 / 错误 401；成功登录顺带清零失败计数，为 SF4 铺垫）
+        check("SF9(spec C9) server.js 使用 timingSafeEqual", "timingSafeEqual" in server_src, "")
+        code_sf9, _, _ = post("/api/login", {"password": "testpass123"})
+        check("SF9(spec C9) 常量时间比较下正确密码登录 200", code_sf9 == 200, f"got {code_sf9}")
+        code_sf9b, _, _ = post("/api/login", {"password": "wrong-timing"})
+        check("SF9(spec C9) 错误密码登录 401", code_sf9b == 401, f"got {code_sf9b}")
+
+        # SF10 (spec C10)：服务端杂项
+        try:
+            _rw = urllib.request.Request(BASE + "/fonts/jost-latin.woff2")
+            _rwr = OPENER.open(_rw, timeout=5)
+            code_sf10, hdr_sf10 = _rwr.status, dict(_rwr.headers)
+            _rwr.read()
+        except urllib.error.HTTPError as _e:
+            code_sf10, hdr_sf10 = _e.code, dict(_e.headers)
+        check("SF10(spec C10) .woff2 返回 font/woff2", hdr_sf10.get("Content-Type", "").startswith("font/"), str(hdr_sf10.get("Content-Type")))
+        code_sf10b, _, hdr_sf10b = get("/nonexistent-xyz")
+        check("SF10(spec C10) 404 响应含安全头", hdr_sf10b.get("X-Content-Type-Options") == "nosniff", str(hdr_sf10b))
+        sf10_data = json.loads(body_sf2)
+        sf10_data["base"]["name"] = "<iframe src=x></iframe>"
+        code_sf10c, _, _ = post("/api/save", sf10_data, {"Cookie": session_cookie})
+        check("SF10(spec C10) 保存含 <iframe> 被拒绝（400）", code_sf10c == 400, f"got {code_sf10c}")
+        code_sf10d, _, _ = post("/api/upload", {"data": "data:image/png;base64,QUFB"}, {"Cookie": session_cookie})
+        check("SF10(spec C10) 超短图片 buffer 被拒绝（400）", code_sf10d == 400, f"got {code_sf10d}")
+        import base64 as _b64
+        fake_webp = _b64.b64encode(b"RIFF1234WAVxCONTENTS!!").decode()
+        code_sf10e, _, _ = post("/api/upload", {"data": "data:image/webp;base64," + fake_webp}, {"Cookie": session_cookie})
+        check("SF10(spec C10) RIFF 非 WEBP 容器被拒绝（400）", code_sf10e == 400, f"got {code_sf10e}")
+
+        # SF11 (spec C11)：start.bat 修复
+        check("SF11(spec C11) start.bat 使用 UTF-8 代码页 65001", "65001" in start_bat and "936" not in start_bat, "")
+        check("SF11(spec C11) start.bat 无硬编码他人用户路径", "xianzhe.zhao" not in start_bat, "")
+        check("SF11(spec C11) start.bat 不回显明文密码", "%ADMIN_PASSWORD%" not in start_bat.replace("echo ADMIN_PASSWORD=%ADMIN_PASSWORD%> .env", ""), "")
+
+        # SF12 (spec C12)：垃圾文件清理
+        check("SF12(spec C12) 废弃部署脚本已删除",
+              not any(os.path.exists(os.path.join(ROOT, "scripts", f)) for f in
+                      ["deploy.sh", "deploy.bat", "deploy-remote.sh", "generate-pr.sh", "fix-readme.py"]), "")
+        check("SF12(spec C12) ci-deploy.sh 保留", os.path.exists(os.path.join(ROOT, "scripts", "ci-deploy.sh")), "")
+
+        # 恢复原始数据（SF3/SF7 改过）
+        post("/api/save", json.loads(body_sf2), {"Cookie": session_cookie})
+
+        # SF4 (spec C4)：登录限流不可被伪造 XFF 绕过 —— 放最后（会锁定测试 IP 15 分钟）
+        # 模拟 Cloudflare 链路：XFF 链 = [伪造段, 真实 IP]，修复后取末段（真实 IP）计数
+        for i in range(5):
+            post("/api/login", {"password": "wrong" + str(i)},
+                 {"X-Forwarded-For": f"10.0.{i}.{i}, 127.0.0.1"})
+        code_sf4, _, _ = post("/api/login", {"password": "wrong6"},
+                              {"X-Forwarded-For": "9.9.9.9, 127.0.0.1"})
+        check("SF4(spec C4) 伪造XFF前段5次失败后第6次429（按末段真实IP锁定）",
+              code_sf4 == 429, f"got {code_sf4}")
+        code_sf4b, _, _ = post("/api/login", {"password": "wrong7"},
+                               {"X-Forwarded-For": "9.9.9.9, 127.0.0.1", "CF-Connecting-IP": "127.0.0.1"})
+        check("SF4(spec C4) CF-Connecting-IP 优先且锁定生效", code_sf4b == 429, f"got {code_sf4b}")
 
         # ---- 汇总 ----
         print("\n" + "=" * 56)
