@@ -2,6 +2,27 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 
+## [1.6.0] - 2026-11-15
+
+### 变更
+- **CI/CD 部署加固**（spec：`docs/specs/2026-11-15-cicd-hardening.md`）：
+  - `scripts/ci-deploy.sh` 启用 `set -euo pipefail`，rsync / `.env` 写入 / `pm2 start` 失败立即非零退出，workflow 正确标红（不再"服务没起来还 ✅ 部署完成"）
+  - **部署失败自动回滚**：恢复最近备份（代码 + `.env`）并重启旧版本（兑现 dual-branch spec C2/C4 承诺）
+  - **真实密码出库（豹豹模式）**：`ADMIN_PASSWORD` 只从服务器 `~/.secrets/resume.env` 读取（600 权限），缺失即失败、禁止默认值回退；两个 workflow 删除明文密码 env；测试环境 Verify 失败时不再 `cat .env`（防密码进 workflow 日志）
+  - **密码轮换**：旧密码（原以明文提交进公网 git 历史的值）两环境均已作废，新密码见服务器 secrets 文件；记录见 `docs/security-review-log.md`
+  - **PM2 解析健壮化**：PATH → `~/.npm-global` → npx 缓存三级解析，不再写死 npx hash 路径；服务器已全局安装 pm2 7.1.2 并 `pm2 update` 对齐 daemon（版本警告消除）；脚本只操作 `resume` / `resume-test` 两个进程名
+  - 删除无引用死脚本 `scripts/deploy-security.sh`（含明文密码、逻辑过时）
+  - `.gitignore` 补 `.tmp/`（临时运维脚本可能含敏感值）；编码转 UTF-8
+
+## [1.5.0] - 2026-11-14
+
+### 新增
+- **双分支隔离 CI/CD**（spec：`docs/specs/2026-11-14-dual-branch-deploy.md`，后续演进为 test→测试 / main→生产）：
+  - `test` 分支推送 → 自动部署测试环境（`/home/xianzhe/Project/resume-test`，端口 3002，PM2 进程 `resume-test`）
+  - `main` 分支合并 → 自动部署生产环境（`/home/xianzhe/Project/resume`，端口 3000，进程 `resume`）
+  - GitHub Actions 自托管 Runner（homeserver）；`scripts/ci-deploy.sh` 统一部署入口；部署前自动备份（保留 5 个）
+  - main 分支保护：PR 合并 + 必需状态检查 + 禁止强推
+
 ## [1.4.0] - 2026-11-12
 
 ### 新增

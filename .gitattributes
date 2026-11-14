@@ -1,0 +1,5 @@
+# 部署/CI 脚本必须保持 LF（在 Linux Runner 上执行，CRLF 会导致 bash 报错）
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.bat text eol=crlf

@@ -166,9 +166,10 @@ git push origin main
 
 - 备份当前版本（保留最近 5 个）
 - 同步新文件到目标目录
-- 写入 `.env` 文件（ADMIN_PASSWORD + PORT）
-- 停止旧进程（pm2 delete + kill）
-- 启动新进程（pm2 start）
+- 从服务器 `~/.secrets/resume.env`（600 权限）读取密码写入 `.env`（真实密码不进 git/日志，缺失即部署失败）
+- 停止旧进程（pm2 delete 仅在进程存在时执行 + 端口清理）
+- 启动新进程（pm2 start，失败即中止）
+- 部署失败自动回滚最近备份（代码 + .env）并重启
 - 验证服务可访问
 
 ### 分支保护规则

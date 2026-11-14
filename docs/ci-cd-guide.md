@@ -453,6 +453,18 @@ your-project/
 
 ---
 
+## 安全加固（本仓库实践，2026-11-15）
+
+> 通用教程之外，本仓库的 `scripts/ci-deploy.sh` 额外做了四层加固，可按需复制：
+
+1. **凭据不进 git（豹豹模式）**：真实密码只存服务器 `~/.secrets/resume.env`（`ADMIN_PASSWORD=...`，`chmod 600`），部署脚本读取该文件，缺失/为空直接失败——**禁止在脚本或 workflow 里写默认密码**（仓库是 PUBLIC 时等于把密码挂公网）。
+2. **fail-fast**：脚本启用 `set -euo pipefail`；rsync / `.env` 写入 / `pm2 start` 任一失败立即非零退出，让 workflow 在 Deploy 步骤标红，而不是靠后面的 curl 验证兜底（`pm2 start ... || true` 会吞掉启动失败，是反面教材）。
+3. **失败自动回滚**：`trap ... ERR` 捕获部署失败 → 恢复最近一次备份目录（代码 + `.env`）→ 重启旧版本 → 非零退出。备份在部署前由脚本自动创建（保留最近 5 个）。
+4. **PM2 解析健壮化**：按 `command -v pm2` → `~/.npm-global/bin/pm2` → npx 缓存三级解析；不要写死 `~/.npm/_npx/<hash>/...` 路径（hash 随 pm2 升级变化）。CLI 与 daemon 版本不一致时 pm2 打印的升级提示是警告噪音，不作失败判据；根治用 `npm install -g pm2 --prefix ~/.npm-global && pm2 update`（注意 `pm2 update` 会重启该 daemon 下**所有**进程）。
+5. **进程边界**：部署脚本只操作自己的进程名，绝不 `pm2 kill` / `pm2 delete all`（同机常跑多个项目的进程）。workflow 的 Verify 步骤失败时**不要 `cat .env`**（会把密码打进 Actions 日志）。
+
+---
+
 ## 📚 参考资源
 
 - [GitHub Actions 文档](https://docs.github.com/en/actions)
