@@ -44,20 +44,26 @@ jobs:
           authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
           hostname: github-actions-runner
 
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
       - name: Deploy via SSH
         env:
           SERVER_USER: xianzhe
           SERVER_HOST: 100.76.122.13
           SERVER_PASS: ${{ secrets.SERVER_PASS }}
         run: |
-          # 添加服务器到 known_hosts
+          set -e
+          
+          # 添加服务器到 known_hosts（禁用严格检查）
           mkdir -p ~/.ssh
           ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
           
-          # 创建临时打包目录
-          TEMP_DIR=$(mktemp -d)
+          echo "=== 测试 SSH 连接 ==="
+          sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 $SERVER_USER@$SERVER_HOST "echo 'SSH 连接成功'"
           
-          # 复制必要文件
+          echo "=== 创建部署包 ==="
+          TEMP_DIR=$(mktemp -d)
           rsync -av ./ "$TEMP_DIR/" \
             --exclude='.git' \
             --exclude='.github' \
@@ -68,122 +74,68 @@ jobs:
             --exclude='.gitignore' \
             --exclude='scripts'
           
-          # 创建 tar 包
           TAR_FILE="/tmp/resume-deploy.tar.gz"
           tar -czf "$TAR_FILE" -C "$TEMP_DIR" .
           rm -rf "$TEMP_DIR"
           
-          # 上传到服务器（使用 sshpass 或密钥）
-          if [ -n "$SERVER_PASS" ]; then
-            sshpass -p "$SERVER_PASS" scp "$TAR_FILE" ${SERVER_USER}@${SERVER_HOST}:/tmp/
-          else
-            scp "$TAR_FILE" ${SERVER_USER}@${SERVER_HOST}:/tmp/
-          fi
+          echo "=== 上传到服务器 ==="
+          sshpass -p "$SERVER_PASS" scp -o StrictHostKeyChecking=no "$TAR_FILE" ${SERVER_USER}@${SERVER_HOST}:/tmp/
           
-          # 在服务器上执行部署
-          if [ -n "$SERVER_PASS" ]; then
-            sshpass -p "$SERVER_PASS" ssh ${SERVER_USER}@${SERVER_HOST} << 'ENDSSH'
-              set -e
-              
-              PM2=/home/xianzhe/.npm/_npx/5f7878ce38f1eb13/node_modules/pm2/bin/pm2
-              export PM2_HOME=/home/xianzhe/.pm2
-              TARGET_DIR=/home/xianzhe/Project/resume
-              TARGET_PORT=3000
-              PM2_NAME=resume
-              TAR_FILE=/tmp/resume-deploy.tar.gz
-              
-              # 备份当前版本
-              if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR 2>/dev/null)" ]; then
-                  BACKUP_DIR="${TARGET_DIR}-backup-$(date +%Y%m%d%H%M%S)"
-                  echo "备份当前版本到: $BACKUP_DIR"
-                  cp -r "$TARGET_DIR" "$BACKUP_DIR"
-              fi
-              
-              # 解压新版本
-              echo "解压新版本..."
-              TEMP_EXTRACT=/tmp/resume-extract-$$
-              mkdir -p "$TEMP_EXTRACT"
-              tar -xzf "$TAR_FILE" -C "$TEMP_EXTRACT"
-              
-              # 替换目录内容
-              rm -rf "$TARGET_DIR"/*
-              cp -r "$TEMP_EXTRACT"/* "$TARGET_DIR"/
-              rm -rf "$TEMP_EXTRACT"
-              rm "$TAR_FILE"
-              
-              # 重启服务
-              cd "$TARGET_DIR"
-              export PORT=$TARGET_PORT
-              export ADMIN_PASSWORD="${ADMIN_PASSWORD:-Resume@Secure2026!}"
-              
-              if $PM2 describe $PM2_NAME > /dev/null 2>&1; then
-                  echo "重启 PM2 进程: $PM2_NAME"
-                  $PM2 restart $PM2_NAME --update-env
-              else
-                  echo "启动新的 PM2 进程: $PM2_NAME"
-                  $PM2 start server.js --name $PM2_NAME --update-env
-              fi
-              
-              $PM2 save
-              echo "✅ 部署完成!"
-            ENDSSH
-          else
-            ssh ${SERVER_USER}@${SERVER_HOST} << 'ENDSSH'
-              set -e
-              
-              PM2=/home/xianzhe/.npm/_npx/5f7878ce38f1eb13/node_modules/pm2/bin/pm2
-              export PM2_HOME=/home/xianzhe/.pm2
-              TARGET_DIR=/home/xianzhe/Project/resume
-              TARGET_PORT=3000
-              PM2_NAME=resume
-              TAR_FILE=/tmp/resume-deploy.tar.gz
-              
-              if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR 2>/dev/null)" ]; then
-                  BACKUP_DIR="${TARGET_DIR}-backup-$(date +%Y%m%d%H%M%S)"
-                  echo "备份当前版本到: $BACKUP_DIR"
-                  cp -r "$TARGET_DIR" "$BACKUP_DIR"
-              fi
-              
-              echo "解压新版本..."
-              TEMP_EXTRACT=/tmp/resume-extract-$$
-              mkdir -p "$TEMP_EXTRACT"
-              tar -xzf "$TAR_FILE" -C "$TEMP_EXTRACT"
-              
-              rm -rf "$TARGET_DIR"/*
-              cp -r "$TEMP_EXTRACT"/* "$TARGET_DIR"/
-              rm -rf "$TEMP_EXTRACT"
-              rm "$TAR_FILE"
-              
-              cd "$TARGET_DIR"
-              export PORT=$TARGET_PORT
-              export ADMIN_PASSWORD="${ADMIN_PASSWORD:-Resume@Secure2026!}"
-              
-              if $PM2 describe $PM2_NAME > /dev/null 2>&1; then
-                  echo "重启 PM2 进程: $PM2_NAME"
-                  $PM2 restart $PM2_NAME --update-env
-              else
-                  echo "启动新的 PM2 进程: $PM2_NAME"
-                  $PM2 start server.js --name $PM2_NAME --update-env
-              fi
-              
-              $PM2 save
-              echo "✅ 部署完成!"
-            ENDSSH
-          fi
+          echo "=== 执行部署 ==="
+          sshpass -p "$SERVER_PASS" ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} bash << 'ENDSSH'
+            set -e
+            
+            PM2=/home/xianzhe/.npm/_npx/5f7878ce38f1eb13/node_modules/pm2/bin/pm2
+            export PM2_HOME=/home/xianzhe/.pm2
+            TARGET_DIR=/home/xianzhe/Project/resume
+            TARGET_PORT=3000
+            PM2_NAME=resume
+            TAR_FILE=/tmp/resume-deploy.tar.gz
+            
+            echo "备份当前版本..."
+            if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR 2>/dev/null)" ]; then
+                BACKUP_DIR="${TARGET_DIR}-backup-$(date +%Y%m%d%H%M%S)"
+                cp -r "$TARGET_DIR" "$BACKUP_DIR"
+                echo "备份到: $BACKUP_DIR"
+            fi
+            
+            echo "解压新版本..."
+            TEMP_EXTRACT=/tmp/resume-extract-$$
+            mkdir -p "$TEMP_EXTRACT"
+            tar -xzf "$TAR_FILE" -C "$TEMP_EXTRACT"
+            
+            echo "替换文件..."
+            rm -rf "$TARGET_DIR"/*
+            cp -r "$TEMP_EXTRACT"/* "$TARGET_DIR"/
+            rm -rf "$TEMP_EXTRACT"
+            rm -f "$TAR_FILE"
+            
+            echo "重启服务..."
+            cd "$TARGET_DIR"
+            export PORT=$TARGET_PORT
+            export ADMIN_PASSWORD="${ADMIN_PASSWORD:-Resume@Secure2026!}"
+            
+            if $PM2 describe $PM2_NAME > /dev/null 2>&1; then
+                $PM2 restart $PM2_NAME --update-env
+            else
+                $PM2 start server.js --name $PM2_NAME --update-env
+            fi
+            
+            $PM2 save
+            echo "✅ 部署完成!"
+          ENDSSH
           
-          # 清理本地临时文件
           rm -f "$TAR_FILE"
+          echo "=== 本地清理完成 ==="
 
       - name: Verify deployment
         run: |
           echo "等待服务启动..."
           sleep 5
-          
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://resume.zxz0608.com/ai || echo "000")
-          
           if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ 部署验证成功：HTTP $HTTP_CODE"
+            echo "✅ 部署验证成功: HTTP $HTTP_CODE"
           else
-            echo "❌ 部署验证失败：HTTP $HTTP_CODE"
+            echo "❌ 部署验证失败: HTTP $HTTP_CODE"
             exit 1
           fi
