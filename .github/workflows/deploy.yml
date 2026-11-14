@@ -12,8 +12,47 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout code (with retry)
+        run: |
+          set -e
+          
+          MAX_RETRIES=5
+          RETRY_DELAY=60
+          RETRY_COUNT=0
+          
+          echo "=== 开始拉取代码（最多重试 $MAX_RETRIES 次）==="
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo ""
+              echo ">>> 第 $RETRY_COUNT 次尝试..."
+              
+              # 清理旧的工作目录
+              if [ -d "$GITHUB_WORKSPACE/.git" ]; then
+                  rm -rf "$GITHUB_WORKSPACE/.git"
+              fi
+              
+              # 尝试拉取代码
+              if git clone --depth=1 --branch=main \
+                  https://github.com/${{ github.repository }}.git \
+                  "$GITHUB_WORKSPACE" 2>&1; then
+                  echo ""
+                  echo "✅ 代码拉取成功（第 $RETRY_COUNT 次尝试）"
+                  cd "$GITHUB_WORKSPACE"
+                  git checkout ${{ github.sha }} 2>/dev/null || true
+                  exit 0
+              else
+                  echo "❌ 第 $RETRY_COUNT 次失败"
+                  if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                      echo "⏳ 等待 $RETRY_DELAY 秒后重试..."
+                      sleep $RETRY_DELAY
+                  fi
+              fi
+          done
+          
+          echo ""
+          echo "❌ 经过 $MAX_RETRIES 次尝试仍然失败"
+          exit 1
 
       - name: Run tests
         env:
