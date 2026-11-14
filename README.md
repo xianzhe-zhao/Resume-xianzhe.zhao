@@ -2,6 +2,10 @@
 
 数据驱动的多版本简历系统：内容与展示分离，4 个求职意向版本，密码保护的管理后台，一键分享/导出。
 
+**在线预览**：https://resume.zxz0608.com/ai
+
+---
+
 ## 快速开始
 
 ```bash
@@ -12,8 +16,10 @@ PORT=3000 ADMIN_PASSWORD=你的密码 node server.js
 ```
 
 打开浏览器访问：
-- **简历页面**：http://localhost:3000 （默认 AI 开发版）
-- **管理后台**：http://localhost:3000/admin （密码：`admin123`，请用环境变量修改）
+- **简历页面**：http://localhost:3000/ai （默认 AI 开发版）
+- **管理后台**：http://localhost:3000/admin （密码：通过环境变量设置）
+
+---
 
 ## 4 个版本（按求职优先级）
 
@@ -26,23 +32,35 @@ PORT=3000 ADMIN_PASSWORD=你的密码 node server.js
 
 每个版本共享同一份基础数据（经历/教育/技能/证书），仅调整求职意向、个人简介、核心优势排序——同底稿换视角，方便维护。
 
+---
+
 ## 项目结构
 
 ```
 resume/
-├── server.js            # Node 服务端（零依赖，页面路由 + API + 鉴权）
-├── data/resume.json     # 简历数据（所有版本，改内容只改这里）
+├── server.js                 # Node 服务端（零依赖，页面路由 + API + 鉴权 + 安全加固）
+├── data/resume.json          # 简历数据（所有版本，改内容只改这里）
 ├── public/
-│   ├── index.html       # 公共简历页模板（服务端注入数据，无后台入口）
-│   ├── app.js           # 简历渲染器
-│   ├── admin.html       # 管理后台页面
-│   ├── admin.js         # 后台逻辑（登录/编辑/分享/导出）
-│   └── style.css        # 共享样式
-├── test/test.py         # Python 自动化测试（237 项）
-├── test/cdp-print.mjs   # 打印/存为 PDF 流程 CDP 实测（零依赖，31 项）
+│   ├── index.html            # 公共简历页模板（服务端注入数据，无后台入口）
+│   ├── app.js                # 简历渲染器
+│   ├── admin.html            # 管理后台页面
+│   ├── admin.js              # 后台逻辑（登录/编辑/分享/导出）
+│   ├── style.css             # 共享样式
+│   └── fonts/                # 本地字体（Jost）
+├── test/
+│   ├── test.py               # Python 自动化测试（246 项）
+│   └── cdp-print.mjs         # 打印/存为 PDF 流程 CDP 实测（31 项）
+├── scripts/
+│   ├── deploy.sh             # Linux/macOS 部署脚本
+│   └── deploy.bat            # Windows 部署脚本
+├── .github/workflows/
+│   └── deploy.yml            # GitHub Actions CI/CD 配置
+├── docs/specs/               # 契约 spec 文档
 ├── package.json
 └── CHANGELOG.md
 ```
+
+---
 
 ## 管理后台功能
 
@@ -51,30 +69,142 @@ resume/
 - **一键分享**：复制对应版本页面链接，发给不同的人
 - **导出 HTML**：将指定版本导出为零依赖单文件 HTML，离线分享
 
-## 安全设计
+---
 
-- 公共简历页面**无任何跳转后台的入口**，查看者看不到后台
-- 后台需密码登录，保存接口需会话鉴权
-- 数据原子写入（先写临时文件再 rename）
+## 安全设计（v1.5.0 加固）
+
+### 应用层安全
+- ✅ **存储型 XSS 防护**：数据中的 `</script>` 等危险内容被转义
+- ✅ **数据校验**：保存时验证 JSON 结构，拒绝畸形数据
+- ✅ **隐私脱敏**：公开 API 自动隐藏手机号/微信（显示为 `****`）
+- ✅ **文件上传校验**：魔数（magic bytes）验证，禁止 SVG，白名单扩展名
+- ✅ **路径遍历防护**：严格的路径校验，防止 `../../etc/passwd` 攻击
+- ✅ **安全响应头**：CSP、X-Frame-Options、X-Content-Type-Options 等
+
+### 认证安全
+- ✅ **强制强密码**：启动时检查 `ADMIN_PASSWORD`，禁用默认密码 `admin123`
+- ✅ **登录限流**：5 次失败锁定 15 分钟
+- ✅ **会话过期**：24 小时 TTL，每小时自动清理
+- ✅ **HttpOnly Cookie**：防止 XSS 窃取会话
+
+### 架构安全
+- ✅ **默认监听 127.0.0.1**：不直接对外暴露，通过反向代理（Cloudflare Tunnel）访问
+- ✅ **公共页面无后台入口**：查看者看不到管理后台
+- ✅ **数据原子写入**：先写临时文件再 rename，防止写入中断
+
+---
 
 ## 测试
 
 ```bash
-python test/test.py      # 237 项自动化测试
+python test/test.py      # 246 项自动化测试（含 9 项安全测试）
 node test/cdp-print.mjs  # 31 项打印/存为 PDF 流程 CDP 实测（需本机 Chrome/Edge）
 ```
 
-- **test.py**：各版本页面、数据 API、鉴权安全、保存功能、404、打印版式对话框与多页打印修复（C13–C16）、8 区编号式板块重构（C17–C26）、自动隐藏悬浮导航栏（C27）、移除公开页版本切换入口（C28）。
-- **cdp-print.mjs**：零依赖 CDP 实测——真实无头 Chrome 打开页面，验证对话框坐标、打印媒体下样式恢复、`Page.printToPDF` 输出 A4 横/竖版方向与页数。
+### 测试覆盖
+- **核心功能**：多版本页面、数据 API、静态资源、鉴权/保存/头像上传
+- **视觉还原**：暖色配色、8 区编号式结构、Hero 增强、镜像交错时间线卡
+- **打印版式**：横竖版选择对话框、多页打印修复、A4 横竖版模板
+- **安全加固**：XSS 防护、数据校验、隐私脱敏、路径遍历防护、登录限流
 
-## 部署到你的服务器
+---
 
-1. 将整个目录上传到你的服务器
-2. 安装 Node.js（如未安装）
-3. 运行 `node server.js`（建议用 pm2/screen 保持后台运行）
-4. 配置反向代理（nginx）指向端口 3000，绑定域名
-5. 设置环境变量 `ADMIN_PASSWORD` 为强密码
+## CI/CD 自动部署
+
+### 自托管 Runner 方案
+
+本项目使用 **GitHub Actions 自托管 Runner** 实现自动部署：
+
+```
+推送代码到 main → GitHub Actions 触发 → 服务器 Runner 执行 → 自动部署
+```
+
+### 工作流程
+
+1. **本地开发**
+   ```bash
+   git add .
+   git commit -m "feat: xxx"
+   git push origin main
+   ```
+
+2. **自动触发**（或 PR 合并到 main）
+   - GitHub Actions 检测到 main 分支更新
+   - 自托管 Runner（服务器）拉取代码
+   - 运行测试（246 项）
+   - 测试通过后自动部署
+
+3. **部署流程**
+   - 备份当前版本
+   - 同步新文件到 `/home/xianzhe/Project/resume`
+   - 重启 PM2 服务
+   - 验证 https://resume.zxz0608.com 可访问
+
+### 手动部署
+
+```bash
+# Linux/macOS
+bash scripts/deploy.sh test    # 部署到测试环境
+bash scripts/deploy.sh prod    # 部署到生产环境（需确认）
+
+# Windows
+scripts\deploy.bat test
+scripts\deploy.bat prod
+```
+
+---
+
+## 部署架构
+
+| 环境 | 地址 | 端口 | 访问方式 |
+|---|---|---|---|
+| **正式系统** | https://resume.zxz0608.com | 3000 | Cloudflare Tunnel（公网） |
+| **测试系统** | http://192.168.50.100:3004 | 3004 | 内网访问 |
+| **管理后台** | https://resume.zxz0608.com/admin | 3000 | 密码保护 |
+
+### 服务器配置
+- **服务器**：Linux (Ubuntu) @ 192.168.50.100
+- **进程管理**：pm2（自托管 Runner 同一台机器）
+- **内网穿透**：Cloudflare Tunnel（resume.zxz0608.com）
+- **Git 配置**：使用 SSH 认证（`git@github.com:` insteadOf `https://github.com/`）
+
+---
+
+## 环境变量
+
+| 变量 | 说明 | 默认值 |
+|---|---|---|
+| `PORT` | 服务端口 | `3000` |
+| `HOST` | 监听地址 | `127.0.0.1` |
+| `ADMIN_PASSWORD` | 管理后台密码 | **必须设置，禁止默认值** |
+
+---
 
 ## 版本管理
 
 见 [CHANGELOG.md](CHANGELOG.md)。遵循语义化版本规范。
+
+### 最新版本：v1.5.0（2026-11-12）
+
+**安全加固 + CI/CD 自动部署**
+- 修复存储型 XSS 漏洞
+- 添加数据校验和隐私脱敏
+- 文件上传魔数校验
+- 登录限流和会话过期
+- GitHub Actions 自托管 Runner 自动部署
+
+---
+
+## 技术栈
+
+- **后端**：Node.js（内置 http 模块，零第三方依赖）
+- **前端**：原生 HTML/CSS/JS + GSAP 3.12.5 + ScrollTrigger 3.12.5
+- **字体**：本地 Jost（`public/fonts/jost-latin.woff2`）
+- **测试**：Python 标准库 + Playwright（CDP 实测）
+- **部署**：pm2 + Cloudflare Tunnel + GitHub Actions
+
+---
+
+## License
+
+MIT
