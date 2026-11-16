@@ -2,6 +2,18 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 
+## [1.7.2] - 2026-11-16
+
+### 宽度变化过渡动画（spec：`docs/specs/2026-11-16-resize-transition.md`）
+
+- **C1 CSS transition**：给响应式断点会变化的布局属性加 `transition: 0.4s ease`——`.proj-item`/`.exp-item`/`.od-item`/`.hero-inner`/`.about-wrap`/`.skill-cards`/`.eh-grid`/`.footer-main` 的 `grid-template-columns` + `gap`；section 的 `padding`；`.proj-metric`/`.exp-metric` 的 `font-size`；`.nav-menu`/`.nav-burger` 的 `opacity`。拖动窗口宽度跨越断点时布局平滑过渡而非突变。Chrome 111+ 支持 grid transition，旧浏览器降级为瞬间切换
+- **C2 View Transitions API**：语言切换（中/英）用 `document.startViewTransition` 包裹 `render()`，整页交叉淡变过渡（93% 浏览器支持，不支持则直接 render 瞬间切换）
+
+### 测试
+- `test/cdp-transition-verify.mjs`（12 项）：C1 transition 声明 + C2 startViewTransition 调用 + 语言切换正确 + 既有功能不破坏
+- 既有回归：test/test.py 276/276 + cdp-print.mjs 31/31 + cdp-mobile-verify.mjs 30/30
+- check_spec.py 机器校验 PASS（0 错误）
+
 ## [1.7.1] - 2026-11-16
 
 ### 手机端适配修复（spec：`docs/specs/2026-11-13-mobile-projects-fix.md`）

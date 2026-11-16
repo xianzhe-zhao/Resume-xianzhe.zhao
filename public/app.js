@@ -723,7 +723,12 @@
     var langBtn = document.getElementById('langBtn');
     if (langBtn) langBtn.addEventListener('click', function () {
       lang = (lang === 'zh') ? 'en' : 'zh';
-      render();
+      /* C2: 语言切换用 View Transitions API 整页交叉淡变（93% 浏览器支持，不支持则直接 render） */
+      if (document.startViewTransition) {
+        document.startViewTransition(function () { render(); });
+      } else {
+        render();
+      }
     });
     var printBtn = document.getElementById('printBtn');
     if (printBtn) printBtn.addEventListener('click', function () { openPrintDialog(); });
