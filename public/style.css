@@ -42,11 +42,9 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ============ View Transitions 自定义过渡（C1 断点跨越 + C2 语言切换）============
    浏览器默认 0.25s 太快像没过渡；自定义 0.5s 交叉淡变更明显丝滑。
-   ::view-transition-group 是整页快照容器，新旧快照交叉淡变。 */
-@supports (view-transition-name: root) {
-  ::view-transition-old(root) { animation: vt-fade-out 0.5s ease both; }
-  ::view-transition-new(root) { animation: vt-fade-in 0.5s ease both; }
-}
+   不用 @supports 包裹——不支持 View Transitions 的浏览器会忽略这些未知伪元素。 */
+::view-transition-old(root) { animation: vt-fade-out 0.5s ease both; }
+::view-transition-new(root) { animation: vt-fade-in 0.5s ease both; }
 @keyframes vt-fade-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes vt-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
