@@ -2,6 +2,28 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 
+## [1.7.1] - 2026-11-16
+
+### 手机端适配修复（spec：`docs/specs/2026-11-13-mobile-projects-fix.md`）
+
+- **C1 featured 项目塌缩**：个人作品主打项目（豹豹助手）因 CSS 特异性 bug 在 ≤1000px 未塌缩单列，内容挤在 106px 宽、卡片高 2126px、SVG 严重变形——补 `.proj-item.featured { grid-template-columns: 1fr; }` 修复
+- **C2 苹果官网式汉堡菜单**：手机端（≤760px）7 项锚点菜单改为 2 条杠汉堡按钮 + 点击展开面板跳转；面板展开时导航栏常驻不隐藏；面板与导航栏留 18px 间距；背景 `backdrop-filter: blur(6px)` 虚化
+- **C3 滚动隐藏/停止显示**：手机端导航栏下滑隐藏、停止 600ms 后恢复、上滑立即显示、顶部常驻、面板展开时不隐藏（iOS Safari 式）
+- **C4 触摸目标 ≥44px**：lang-btn/nav-print/nav-burger/fc-links a/proj-link 在 ≤760px 加大到 ≥44px
+- **C5 数据压图字号**：≤560px proj-metric/exp-metric 字号降至 32px
+- **C6 中小视口禁用入场动画**：≤1024px（手机+平板）禁用 GSAP `gsap.from()` 入场动画（ScrollTrigger 在中小视口不可靠触发导致 14~28 个元素 opacity:0 大片空白）；改用 `gsap.fromTo()` + `immediateRender:false`，元素默认可见、滚动到触发点才播放动画；resize 跨断点切换无残留空白；桌面端 ≥1025px 动画不变
+
+### 测试
+- `test/cdp-mobile-verify.mjs`（30 项）：C1-C5 坐标断言 + 桌面端不变性 + 768px 断点边界
+- `test/cdp-mobile-c5.mjs`（12 项）：C3 滚动隐藏/停止/上滑 + 背景虚化 + 面板展开锁定
+- `test/cdp-resize-blank.mjs`：resize 三端切换无空白（9 次切换全 0 隐藏）
+- `test/cdp-mobile-opacity.mjs` + `test/cdp-tablet-opacity.mjs`：手机/平板无 opacity:0 元素
+- `test/cdp-anim-play.mjs`：桌面端滚动时动画正常播放（opacity 0→1）
+- `test/cdp-desktop-anim.mjs`：桌面端动画初始态 + 滚动恢复
+- `test/cdp-print.mjs`（31 项）：P1 断言更新（C6 修复后无 opacity:0）+ 打印横竖版
+- `test/test.py`（276 项）：修复 f-string 反斜杠语法错误（main 既有 bug）
+- check_spec.py 机器校验 PASS（0 错误）
+
 ## [1.7.0] - 2026-11-15
 
 ### 安全修复（代码层全面审查，spec：`docs/specs/2026-11-15-security-fixes.md`，审查记录：`docs/security-review-log.md`）

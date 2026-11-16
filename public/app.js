@@ -35,6 +35,7 @@
       nowLabel: 'NOW',
       /* C27 自动隐藏导航栏 */
       navBrand: '简历',
+      navMenuLabel: '菜单',
       navItems: [
         { label: '关于我', href: '#about' },
         { label: '工作经历', href: '#experience' },
@@ -111,6 +112,7 @@
       openToWork: 'OPEN TO WORK',
       nowLabel: 'NOW',
       navBrand: 'Resume',
+      navMenuLabel: 'Menu',
       navItems: [
         { label: 'About', href: '#about' },
         { label: 'Experience', href: '#experience' },
@@ -168,6 +170,8 @@
     }
   };
 
+  var VER_SHORT = { ai: 'AI', it: 'IT', test: '测试', erp: 'ERP' };
+  var VER_SHORT_EN = { ai: 'AI', it: 'IT', test: 'Test', erp: 'ERP' };
   /* NOW 状态卡按版本切换 */
   var NOW_TAG = {
     zh: { ai: 'AI 落地', it: '系统稳定', test: '质量保障', erp: 'ERP 交付' },
@@ -184,6 +188,7 @@
     return en;
   }
 
+  /* 按当前语言取数据源 */
   /* 按当前语言取数据源（ver 兜底空对象，防数据缺失时整页白屏） */
   function dataFor() {
     var ui = UI[lang];
@@ -370,15 +375,26 @@
       s += '<a class="nav-link" href="' + esc(it.href) + '">' + esc(it.label) + '</a>';
     });
     s += '</nav>';
-    /* 右：语言 + 打印（C28：移除版本切换链接，版本管理仅限后台） */
+    /* 右：语言 + 打印 + 手机端汉堡按钮（C28：移除版本切换链接，版本管理仅限后台；C2：≤760px 汉堡菜单） */
     s += '<div class="nav-right">';
     s += '<button class="lang-btn" id="langBtn" aria-label="Switch language">' + esc(ui.langBtn) + '</button>';
     s += '<button class="nav-print" id="printBtn" title="' + esc(ui.printTip) + '" aria-label="' + esc(ui.print) + '">';
     s += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1.5"/></svg>';
     s += '</button>';
+    /* C2: 2 条杠汉堡按钮（苹果官网式，非 3 条杠） */
+    s += '<button class="nav-burger" id="navBurger" aria-label="' + esc(ui.navMenuLabel || 'Menu') + '" aria-expanded="false">';
+    s += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9h16"/><path d="M4 15h16"/></svg>';
+    s += '</button>';
     s += '</div></div></header>';
     /* 顶部感应区（隐形，监听鼠标进入触发显示） */
     s += '<div class="nav-sensor" id="navSensor" aria-hidden="true"></div>';
+    /* C2: 手机端展开面板 + 遮罩（≤760px 由 CSS 激活，桌面端 display:none） */
+    s += '<div class="nav-panel-overlay" id="navPanelOverlay" data-open="false" aria-hidden="true"></div>';
+    s += '<nav class="nav-panel" id="navPanel" data-open="false" aria-label="' + esc(ui.navMenuLabel || 'Menu') + '">';
+    (ui.navItems || []).forEach(function (it) {
+      s += '<a class="nav-panel-link" href="' + esc(it.href) + '">' + esc(it.label) + '</a>';
+    });
+    s += '</nav>';
     return s;
   }
 
@@ -741,6 +757,9 @@
   function hideNavBar() {
     var nb = document.getElementById('navbar');
     if (!nb) return;
+    /* C2: 手机端汉堡面板展开时锁定导航栏常驻可见，不因 mouseleave/2 秒计时隐藏 */
+    var panel = document.getElementById('navPanel');
+    if (panel && panel.getAttribute('data-open') === 'true') return;
     if (navHideTimer) { clearTimeout(navHideTimer); navHideTimer = null; }
     navHideTimer = setTimeout(function () {
       nb.setAttribute('data-state', 'hidden');
@@ -753,8 +772,41 @@
     if (!nb) return;
     /* 首屏常驻：滚动在顶部时保持显示 */
     function atTop() { return (window.pageYOffset || document.documentElement.scrollTop) <= 100; }
+    /* C5: 手机端滚动隐藏/停止显示 —— 记录上次滚动位置与方向 */
+    var lastScrollY = window.pageYOffset || document.documentElement.scrollTop;
+    var scrollTimer = null;
+    var scrollHideActive = false; /* 下滑隐藏锁：防止惯性 scroll 的微小 delta 立即触发恢复 */
+    function isMobile() { return window.innerWidth <= 760; }
     function syncNavState() {
-      if (atTop()) { showNavBar(); }
+      if (atTop()) { showNavBar(); scrollHideActive = false; return; }
+      /* C5: 手机端滚动方向检测 —— 下滑隐藏、停止/上滑显示 */
+      if (isMobile()) {
+        var panel = document.getElementById('navPanel');
+        /* 面板展开时不隐藏（C2 锁定优先） */
+        if (panel && panel.getAttribute('data-open') === 'true') { showNavBar(); return; }
+        var curY = window.pageYOffset || document.documentElement.scrollTop;
+        var delta = curY - lastScrollY;
+        lastScrollY = curY;
+        if (delta > 6) {
+          /* 明显下滑 → 立即隐藏，锁定恢复（滚动中持续隐藏）；设兜底恢复计时，确保滚动结束后能恢复 */
+          nb.setAttribute('data-state', 'hidden');
+          scrollHideActive = true;
+          if (navHideTimer) { clearTimeout(navHideTimer); navHideTimer = null; }
+          if (scrollTimer) clearTimeout(scrollTimer);
+          scrollTimer = setTimeout(function () { scrollHideActive = false; showNavBar(); scrollTimer = null; }, 600);
+        } else if (delta < -6) {
+          /* 明显上滑 → 立即显示，解除锁定 */
+          scrollHideActive = false;
+          showNavBar();
+          if (scrollTimer) { clearTimeout(scrollTimer); scrollTimer = null; }
+        } else {
+          /* 停止滚动（delta 极小）→ 仅在已隐藏且锁定时，等 600ms 确认真正停止后恢复显示 */
+          if (scrollHideActive) {
+            if (scrollTimer) clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(function () { scrollHideActive = false; showNavBar(); scrollTimer = null; }, 600);
+          }
+        }
+      }
     }
     syncNavState();
     /* 鼠标进入顶部感应区 → 立即出现 */
@@ -763,15 +815,15 @@
     nb.addEventListener('mouseenter', function () {
       if (navHideTimer) { clearTimeout(navHideTimer); navHideTimer = null; }
     });
-    /* 鼠标离开导航栏 → 若不在顶部，启动 2 秒隐藏计时 */
+    /* 鼠标离开导航栏 → 若不在顶部，启动 2 秒隐藏计时（桌面端行为） */
     nb.addEventListener('mouseleave', function () {
-      if (!atTop()) hideNavBar();
+      if (!atTop() && !isMobile()) hideNavBar();
     });
-    /* 鼠标离开感应区 → 若不在顶部，启动 2 秒隐藏计时 */
+    /* 鼠标离开感应区 → 若不在顶部，启动 2 秒隐藏计时（桌面端行为） */
     if (sensor) sensor.addEventListener('mouseleave', function () {
-      if (!atTop()) hideNavBar();
+      if (!atTop() && !isMobile()) hideNavBar();
     });
-    /* 滚动：到顶部立即显示；离开顶部不强制隐藏（等鼠标离开再计时） */
+    /* 滚动：到顶部立即显示；手机端方向检测；桌面端等鼠标离开再计时 */
     window.addEventListener('scroll', syncNavState, { passive: true });
     /* 点击导航项：平滑滚动（锚点默认行为 + smooth），跳转后保持显示 2 秒再隐藏 */
     nb.querySelectorAll('.nav-link, .nav-brand').forEach(function (a) {
@@ -788,6 +840,58 @@
         }
       });
     });
+
+    /* ============ C2 手机端汉堡菜单：点击展开/收起 + 菜单项跳转后收起 ============ */
+    var burger = document.getElementById('navBurger');
+    var panel = document.getElementById('navPanel');
+    var overlay = document.getElementById('navPanelOverlay');
+    function openPanel() {
+      if (!panel) return;
+      panel.setAttribute('data-open', 'true');
+      if (overlay) overlay.setAttribute('data-open', 'true');
+      if (burger) { burger.setAttribute('aria-expanded', 'true'); }
+      /* 展开时锁定导航栏常驻可见，避免 2 秒隐藏打断操作 */
+      showNavBar();
+    }
+    function closePanel() {
+      if (!panel) return;
+      panel.setAttribute('data-open', 'false');
+      if (overlay) overlay.setAttribute('data-open', 'false');
+      if (burger) { burger.setAttribute('aria-expanded', 'false'); }
+      if (!atTop()) hideNavBar();
+    }
+    function togglePanel() {
+      if (!panel) return;
+      if (panel.getAttribute('data-open') === 'true') { closePanel(); } else { openPanel(); }
+    }
+    if (burger) burger.addEventListener('click', function (e) { e.stopPropagation(); togglePanel(); });
+    if (overlay) overlay.addEventListener('click', closePanel);
+    /* 菜单项点击：复用平滑滚动跳转，跳转后收起面板 */
+    if (panel) {
+      panel.querySelectorAll('.nav-panel-link').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          var href = a.getAttribute('href') || '';
+          if (href.charAt(0) === '#' && href.length > 1) {
+            var target = document.querySelector(href);
+            if (target) {
+              e.preventDefault();
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              closePanel();
+              showNavBar();
+              if (!atTop()) hideNavBar();
+            }
+          }
+        });
+      });
+    }
+    /* Esc 收起面板（复用已有 Esc 监听机制，此处单独绑定不冲突） */
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && panel && panel.getAttribute('data-open') === 'true') closePanel();
+    });
+    /* 视口变宽到 >760px 时收起面板（避免横竖屏切换残留展开态） */
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 760 && panel && panel.getAttribute('data-open') === 'true') closePanel();
+    });
   }
 
   /* ============ GSAP 动效层（失败则内容完整可见） ============ */
@@ -795,49 +899,60 @@
     if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
     gsap.registerPlugin(ScrollTrigger);
 
+    /* C6: 只用 prefers-reduced-motion 作 matchMedia 条件（不用 min-width），
+       避免 resize 跨断点时 matchMedia 重新执行 gsap.from 重置 opacity:0 导致空白。
+       视口宽度在回调内用 JS 判断：≤1024px 跳过入场动画，内容直接可见。 */
     gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', function () {
-      /* 签名动作：封面人像卡片升起 + 模糊背景缓慢漂移 + 增强元素入场 */
-      gsap.from('.hero-card', { y: 44, autoAlpha: 0, duration: 1.1, ease: 'power3.out', delay: 0.15 });
-      gsap.from('.hero-text > *', { y: 24, autoAlpha: 0, duration: 0.8, stagger: 0.09, ease: 'power2.out', delay: 0.05 });
-      gsap.from('.hero-open, .hero-now', { autoAlpha: 0, scale: 0.85, duration: 0.6, stagger: 0.12, ease: 'back.out(1.6)', delay: 0.7 });
-      gsap.to('.hero-bg', { scale: 1.08, duration: 24, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      var isSmallViewport = window.innerWidth <= 1024;
 
-      /* 技能图标悬浮（3–5px，2–4s，错开相位；幅度 < 网格间距，保证不重合） */
-      gsap.utils.toArray('.skill-badge').forEach(function (el, i) {
-        gsap.to(el, {
-          y: -(3 + (i % 3) * 1),
-          duration: 1.8 + (i % 4) * 0.5,
-          ease: 'sine.inOut',
-          yoyo: true,
-          repeat: -1,
-          delay: (i % 5) * 0.25
+      /* 签名动作：封面人像卡片升起 + 模糊背景缓慢漂移 + 增强元素入场（仅大屏） */
+      if (!isSmallViewport) {
+        gsap.from('.hero-card', { y: 44, autoAlpha: 0, duration: 1.1, ease: 'power3.out', delay: 0.15 });
+        gsap.from('.hero-text > *', { y: 24, autoAlpha: 0, duration: 0.8, stagger: 0.09, ease: 'power2.out', delay: 0.05 });
+        gsap.from('.hero-open, .hero-now', { autoAlpha: 0, scale: 0.85, duration: 0.6, stagger: 0.12, ease: 'back.out(1.6)', delay: 0.7 });
+        gsap.to('.hero-bg', { scale: 1.08, duration: 24, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+
+        /* 技能图标悬浮（3–5px，2–4s，错开相位；幅度 < 网格间距，保证不重合） */
+        gsap.utils.toArray('.skill-badge').forEach(function (el, i) {
+          gsap.to(el, {
+            y: -(3 + (i % 3) * 1),
+            duration: 1.8 + (i % 4) * 0.5,
+            ease: 'sine.inOut',
+            yoyo: true,
+            repeat: -1,
+            delay: (i % 5) * 0.25
+          });
         });
-      });
 
-      /* 各 section 入场：标题先行，内容级联 */
-      var SEL = {
-        about: { head: '.about .sec-head', items: '.bubble', itemY: 24 },
-        experience: { head: '.experience .sec-head', items: '.exp-item', itemY: 28 },
-        projects: { head: '.projects .sec-head', items: '.proj-item', itemY: 28 },
-        skills: { head: '.skills .sec-head', items: '.skill-card', itemY: 20 },
-        'edu-honors': { head: '.edu-honors .sec-head', items: '.eh-card', itemY: 24 },
-        'off-duty': { head: '.off-duty .sec-head', items: '.od-item', itemY: 28 }
-      };
-      Object.keys(SEL).forEach(function (key) {
-        var sec = document.querySelector('.' + key);
-        if (!sec) return;
-        var head = sec.querySelector(SEL[key].head);
-        var items = sec.querySelectorAll(SEL[key].items);
-        var tl = gsap.timeline({ scrollTrigger: { trigger: sec, start: 'top 82%', once: true } });
-        if (head) tl.from(head, { y: 20, autoAlpha: 0, duration: 0.55, ease: 'power2.out' });
-        if (items.length) tl.from(items, { y: SEL[key].itemY, autoAlpha: 0, duration: 0.55, stagger: 0.07, ease: 'power2.out' }, head ? '-=0.25' : 0);
-      });
+        /* 各 section 入场：标题先行，内容级联 */
+        var SEL = {
+          about: { head: '.about .sec-head', items: '.bubble', itemY: 24 },
+          experience: { head: '.experience .sec-head', items: '.exp-item', itemY: 28 },
+          projects: { head: '.projects .sec-head', items: '.proj-item', itemY: 28 },
+          skills: { head: '.skills .sec-head', items: '.skill-card', itemY: 20 },
+          'edu-honors': { head: '.edu-honors .sec-head', items: '.eh-card', itemY: 24 },
+          'off-duty': { head: '.off-duty .sec-head', items: '.od-item', itemY: 28 }
+        };
+        Object.keys(SEL).forEach(function (key) {
+          var sec = document.querySelector('.' + key);
+          if (!sec) return;
+          var head = sec.querySelector(SEL[key].head);
+          var items = sec.querySelectorAll(SEL[key].items);
+          /* immediateRender:false —— 初始态不在创建时写入，元素保持 CSS 默认可见；
+             ScrollTrigger 触发时才设 opacity:0 并动画到 1。
+             这样 resize 回桌面后元素默认可见，不会残留 opacity:0 空白。 */
+          var tl = gsap.timeline({ scrollTrigger: { trigger: sec, start: 'top 82%', once: true } });
+          if (head) tl.fromTo(head, { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, ease: 'power2.out', immediateRender: false });
+          if (items.length) tl.fromTo(items, { y: SEL[key].itemY, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.55, stagger: 0.07, ease: 'power2.out', immediateRender: false }, head ? '-=0.25' : 0);
+        });
 
-      /* 页脚入场 */
-      gsap.from('.footer-main > *', { y: 20, autoAlpha: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out', scrollTrigger: { trigger: '.footer', start: 'top 88%', once: true } });
+        /* 页脚入场 */
+        gsap.fromTo('.footer-main > *', { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.6, stagger: 0.08, ease: 'power2.out', immediateRender: false, scrollTrigger: { trigger: '.footer', start: 'top 88%', once: true } });
+      }
+      /* 中小视口（≤1024px）：不创建入场动画，内容直接可见，无 opacity:0 空白 */
 
-      /* 控件按压反馈 */
-      gsap.utils.toArray('.btn, .lang-btn, .nav-print, .proj-link, .fc-links a').forEach(function (el) {
+      /* 控件按压反馈：所有视口都保留（轻量、无 opacity 初始态问题） */
+      gsap.utils.toArray('.btn, .lang-btn, .nav-print, .nav-burger, .proj-link, .fc-links a').forEach(function (el) {
         el.addEventListener('pointerdown', function () { gsap.to(el, { scale: 0.97, duration: 0.1, ease: 'power1.out' }); });
         ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) {
           el.addEventListener(ev, function () { gsap.to(el, { scale: 1, duration: 0.18, ease: 'power2.out' }); });
@@ -845,6 +960,20 @@
       });
     });
   }
+
+  /* C6 补充：resize 时重新初始化动画 —— killAnims 清除旧动画 + initAnims 按新视口重建。
+     因 matchMedia 只用 prefers-reduced-motion（不含 min-width），resize 不会触发 matchMedia 重新执行，
+     避免了跨断点时 gsap.from 重置 opacity:0 导致的残留空白。
+     fromTo + immediateRender:false 保证元素默认可见，无需清除内联态。 */
+  var resizeAnimTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeAnimTimer);
+    resizeAnimTimer = setTimeout(function () {
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+      killAnims();
+      initAnims();
+    }, 400);
+  });
 
   function render() {
     killAnims();

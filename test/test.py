@@ -657,7 +657,7 @@ def main():
         code_sf3b, body_sf3b, _ = get("/api/data/full", {"Cookie": session_cookie})
         sf3_back = json.loads(body_sf3b).get("versions", {}).get("ai", {}).get("summary", "")
         check("SF3(spec C3) 大体积中文往返无损", sf3_back == sf3_text,
-              f"长度 {len(sf3_back)} vs {len(sf3_text)}, 含替换字符: {'\ufffd' in sf3_back}")
+              f"长度 {len(sf3_back)} vs {len(sf3_text)}, 含替换字符: {chr(0xFFFD) in sf3_back}")
 
         # SF5 (spec C5)：javascript: 链接被服务端黑名单拒绝 + 前端 scheme 白名单
         sf5_data = json.loads(body_sf2)
