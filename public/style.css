@@ -30,6 +30,24 @@ img { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 
+/* ============ 宽度变化过渡（C1 · resize 时布局属性平滑过渡）============
+   给响应式断点会变化的布局属性加 transition，拖动窗口时平滑过渡而非突变。
+   Chrome 111+ 支持 grid-template-columns transition；旧浏览器降级为瞬间切换。 */
+.hero-inner, .about-wrap, .about-bubbles, .exp-item, .proj-item, .od-item,
+.skill-cards, .eh-grid, .eh-edu, .footer-main, .nav-menu { transition: grid-template-columns 0.4s ease, gap 0.4s ease; }
+.about, .experience, .projects, .skills, .edu-honors, .off-duty { transition: padding 0.4s ease; }
+.hero { transition: padding 0.4s ease, min-height 0.4s ease; }
+.proj-metric, .exp-metric { transition: font-size 0.4s ease; }
+.nav-menu, .nav-burger { transition: opacity 0.3s ease, visibility 0.3s ease; }
+
+/* ============ View Transitions 自定义过渡（C1 断点跨越 + C2 语言切换）============
+   浏览器默认 0.25s 太快像没过渡；自定义 0.5s 交叉淡变更明显丝滑。
+   不用 @supports 包裹——不支持 View Transitions 的浏览器会忽略这些未知伪元素。 */
+::view-transition-old(root) { animation: vt-fade-out 0.5s ease both; }
+::view-transition-new(root) { animation: vt-fade-in 0.5s ease both; }
+@keyframes vt-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
 /* ============ C27 自动隐藏悬浮导航栏（胶囊形 · 丝滑上下动画）============ */
 .navbar { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-130%); z-index: 50; width: min(1200px, calc(100vw - 48px)); background: var(--surface); border-radius: 999px; box-shadow: 0 8px 28px rgba(61, 53, 41, 0.14); opacity: 0; transition: transform .38s cubic-bezier(0.22, 1, 0.36, 1), opacity .38s cubic-bezier(0.22, 1, 0.36, 1); will-change: transform, opacity; }
 .navbar[data-state="visible"] { transform: translateX(-50%) translateY(0); opacity: 1; }
@@ -53,6 +71,16 @@ button { font-family: inherit; cursor: pointer; }
 .nav-print svg { width: 17px; height: 17px; }
 /* 顶部感应区：隐形，监听鼠标进入触发显示 */
 .nav-sensor { position: fixed; top: 0; left: 0; right: 0; height: 80px; z-index: 49; pointer-events: auto; }
+
+/* ============ C2 手机端汉堡菜单（2 条杠按钮 + 展开面板，≤760px 生效）============
+   桌面端默认隐藏 burger 与 panel；≤760px 隐藏 nav-menu，显示 burger。
+   panel 从导航栏下方下滑展开，全宽暖白底，7 项纵向列表。 */
+.nav-burger { display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); border: none; transition: background .2s, color .2s; }
+.nav-burger:hover { background: var(--accent); color: #fffdf8; }
+.nav-burger svg { width: 18px; height: 18px; }
+/* 展开面板：桌面端不渲染；手机端由 JS toggle data-open */
+.nav-panel { display: none; }
+.nav-panel-overlay { position: fixed; inset: 0; top: 0; background: rgba(61, 53, 41, 0); backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); z-index: 48; opacity: 0; transition: opacity .3s, background .3s, backdrop-filter .3s; pointer-events: none; }
 
 /* ============ ① Hero 头图（增强：问候徽章 + 荧光笔划线职位 + 拱形人像 + 状态标签）============ */
 .hero { position: relative; min-height: 92vh; display: flex; align-items: center; overflow: hidden; padding: 150px 0 90px; }
@@ -203,6 +231,8 @@ button { font-family: inherit; cursor: pointer; }
   .about-wrap { grid-template-columns: 1fr; gap: 28px; }
   .about-center { max-width: 360px; margin: 0 auto; }
   .exp-item, .proj-item, .od-item { grid-template-columns: 1fr; gap: 18px; }
+  /* C1: featured 项目在 ≤1000px 也塌缩单列（基线 .proj-item.featured 特异性 0,2,0，此处同等特异性后置覆盖） */
+  .proj-item.featured { grid-template-columns: 1fr; }
   .exp-item.mirror .exp-cover, .proj-item.mirror .proj-cover, .od-item.mirror .od-cover { order: 0; }
   .exp-node { display: none; }
   .exp-timeline::before { display: none; }
@@ -212,8 +242,22 @@ button { font-family: inherit; cursor: pointer; }
 @media (max-width: 760px) {
   .nav-brand-text { display: none; }
   .nav-versions { display: none; }
-  .nav-menu { justify-content: flex-start; }
+  /* C2: 隐藏横向菜单，显示 2 条杠汉堡按钮 */
+  .nav-menu { display: none; }
+  .nav-burger { display: inline-flex; }
   .navbar { width: calc(100vw - 24px); }
+  /* C2: 展开面板 —— 从导航栏下方下滑出现，全宽暖白底 */
+  .nav-panel { display: block; position: fixed; top: 96px; left: 12px; right: 12px; z-index: 50; background: var(--surface); border-radius: 20px; box-shadow: 0 12px 36px rgba(61, 53, 41, 0.18); padding: 10px 14px; max-height: 0; overflow: hidden; opacity: 0; transform: translateY(-12px); transition: max-height .32s cubic-bezier(0.22, 1, 0.36, 1), opacity .28s, transform .32s cubic-bezier(0.22, 1, 0.36, 1); pointer-events: none; }
+  .nav-panel[data-open="true"] { max-height: 420px; opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .nav-panel-link { display: flex; align-items: center; min-height: 48px; padding: 12px 14px; font-size: 15px; font-weight: 600; color: var(--ink); border-radius: 12px; transition: background .2s, color .2s; }
+  .nav-panel-link:hover, .nav-panel-link:active { background: var(--accent-soft); color: var(--accent-ink); }
+  .nav-panel-overlay[data-open="true"] { background: rgba(61, 53, 41, 0.32); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 1; pointer-events: auto; }
+  /* C3: 触摸目标 ≥44px */
+  .lang-btn { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px; }
+  .nav-print { width: 44px; height: 44px; }
+  .nav-burger { width: 44px; height: 44px; }
+  .fc-links a { display: block; padding: 11px 0; min-height: 44px; }
+  .proj-link { display: inline-block; padding: 11px 0; min-height: 44px; }
   .hero { padding-top: 110px; min-height: 0; }
   .hero-inner { grid-template-columns: 1fr; gap: 40px; padding: 0 24px; }
   .hero-portrait { order: -1; max-width: 320px; margin: 0 auto; }
@@ -231,6 +275,9 @@ button { font-family: inherit; cursor: pointer; }
   .btn { width: 100%; text-align: center; }
   .footer-right { flex-direction: column; align-items: flex-start; }
   .exp-info, .proj-info, .od-text { padding: 22px 20px; }
+  /* C4: 数据压图字号缩小，避免占 cover 过宽 */
+  .proj-metric { font-size: 32px; }
+  .exp-metric { font-size: 32px; }
 }
 
 /* ============ 打印版式对话框（C13） ============ */
@@ -261,7 +308,7 @@ button { font-family: inherit; cursor: pointer; }
      保证第 2 页起内容完整可见；仅在 print 媒体内生效，屏幕端动画不受影响 */
   /* 暖色底输出（C15）：print-color-adjust: exact 保证打印对话框未勾选「背景图形」时背景仍输出 */
   * { opacity: 1 !important; visibility: visible !important; transform: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .navbar, .nav-sensor, .hero-actions, .hero-bg, .hero-veil, .print-dialog { display: none !important; }
+  .navbar, .nav-sensor, .nav-burger, .nav-panel, .nav-panel-overlay, .hero-actions, .hero-bg, .hero-veil, .print-dialog { display: none !important; }
   /* 背景色保留屏幕暖色（body #faf5ec / 技能带 #f1e7d3 / 卡片 #fffdf8 / 深色页脚 #3d3529），与网页观感一致 */
   body { overflow: visible; }
   .hero { min-height: auto; padding: 24px 0; break-inside: avoid; }

@@ -175,12 +175,12 @@ async function main() {
     page = await newPage(cdp);
     await page.goto(BASE + '/ai');
 
-    // ---- P1 bug 前置条件：未滚动，下方元素残留内联 opacity:0 ----
+    // ---- P1: C6 修复后，未滚动时下方元素不再残留内联 opacity:0（immediateRender:false） ----
     const pre = await page.eval(`(() => {
       const el = document.querySelector('.skills .sec-head');
       return { opacity: el.style.opacity, visibility: el.style.visibility, transform: el.style.transform };
     })()`);
-    check('P1 bug 前置：未滚动时下方元素残留内联 opacity:0', pre.opacity === '0' || pre.visibility === 'hidden', JSON.stringify(pre));
+    check('P1 C6 修复：未滚动时下方元素无内联 opacity:0', pre.opacity !== '0' && pre.visibility !== 'hidden', JSON.stringify(pre));
 
     // ---- C13 打印按钮 → 对话框 ----
     await page.eval(`document.getElementById('printBtn').click()`);
