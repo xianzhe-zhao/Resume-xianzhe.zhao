@@ -40,6 +40,16 @@ button { font-family: inherit; cursor: pointer; }
 .proj-metric, .exp-metric { transition: font-size 0.4s ease; }
 .nav-menu, .nav-burger { transition: opacity 0.3s ease, visibility 0.3s ease; }
 
+/* ============ View Transitions 自定义过渡（C1 断点跨越 + C2 语言切换）============
+   浏览器默认 0.25s 太快像没过渡；自定义 0.5s 交叉淡变更明显丝滑。
+   ::view-transition-group 是整页快照容器，新旧快照交叉淡变。 */
+@supports (view-transition-name: root) {
+  ::view-transition-old(root) { animation: vt-fade-out 0.5s ease both; }
+  ::view-transition-new(root) { animation: vt-fade-in 0.5s ease both; }
+}
+@keyframes vt-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
 /* ============ C27 自动隐藏悬浮导航栏（胶囊形 · 丝滑上下动画）============ */
 .navbar { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-130%); z-index: 50; width: min(1200px, calc(100vw - 48px)); background: var(--surface); border-radius: 999px; box-shadow: 0 8px 28px rgba(61, 53, 41, 0.14); opacity: 0; transition: transform .38s cubic-bezier(0.22, 1, 0.36, 1), opacity .38s cubic-bezier(0.22, 1, 0.36, 1); will-change: transform, opacity; }
 .navbar[data-state="visible"] { transform: translateX(-50%) translateY(0); opacity: 1; }
