@@ -49,8 +49,8 @@ v1.7.1 手机端适配修复已完成，但拖动浏览器窗口改变宽度时�
 
 ### C1 resize 宽度变化时布局属性平滑过渡
 
-- **前置条件**：浏览器支持 CSS transition on grid-template-columns（Chrome 111+）
-- **后置条件**：拖动窗口宽度跨越断点时，grid-template-columns/padding/gap/font-size 平滑过渡（0.4s ease），而非瞬间突变
+- **前置条件**：浏览器支持 CSS transition on grid-template-columns（Chrome 111+）或 View Transitions API
+- **后置条件**：拖动窗口宽度跨越断点（1000/760/560）时，用 View Transitions API 做整页交叉淡变（CSS transition 对数值属性如 padding/gap/font-size 平滑过渡；grid-template-columns 列数变化由 View Transitions 交叉淡变覆盖）；同断点内移动不触发
 - **失败行为**：旧浏览器不支持 → 降级为瞬间切换（与当前一致，不会更差）
 - **不变式**：过渡不影响最终布局结果（过渡完成后布局与无 transition 时一致）
 

@@ -969,9 +969,26 @@
   /* C6 补充：resize 时重新初始化动画 —— killAnims 清除旧动画 + initAnims 按新视口重建。
      因 matchMedia 只用 prefers-reduced-motion（不含 min-width），resize 不会触发 matchMedia 重新执行，
      避免了跨断点时 gsap.from 重置 opacity:0 导致的残留空白。
-     fromTo + immediateRender:false 保证元素默认可见，无需清除内联态。 */
+     fromTo + immediateRender:false 保证元素默认可见，无需清除内联态。
+     C1 补充：跨越 1000/760 断点时用 View Transitions API 做交叉淡变，
+     让 grid-template-columns 列数变化（CSS transition 无法过渡离散列数）也有平滑过渡。 */
   var resizeAnimTimer = null;
+  var lastBreakpoint = getBreakpoint();
+  function getBreakpoint() {
+    var w = window.innerWidth;
+    if (w <= 560) return 560;
+    if (w <= 760) return 760;
+    if (w <= 1000) return 1000;
+    return 1001;
+  }
   window.addEventListener('resize', function () {
+    var curBp = getBreakpoint();
+    /* 跨越断点时用 View Transitions 交叉淡变（不支持则跳过，降级为瞬间切换） */
+    if (curBp !== lastBreakpoint && document.startViewTransition) {
+      document.startViewTransition(function () { lastBreakpoint = curBp; });
+    } else {
+      lastBreakpoint = curBp;
+    }
     clearTimeout(resizeAnimTimer);
     resizeAnimTimer = setTimeout(function () {
       if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
