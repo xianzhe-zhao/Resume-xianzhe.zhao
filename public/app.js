@@ -970,10 +970,12 @@
      因 matchMedia 只用 prefers-reduced-motion（不含 min-width），resize 不会触发 matchMedia 重新执行，
      避免了跨断点时 gsap.from 重置 opacity:0 导致的残留空白。
      fromTo + immediateRender:false 保证元素默认可见，无需清除内联态。
-     C1 补充：跨越 1000/760 断点时用 View Transitions API 做交叉淡变，
-     让 grid-template-columns 列数变化（CSS transition 无法过渡离散列数）也有平滑过渡。 */
+     C1 补充：跨越 1000/760/560 断点时用 GSAP 给 #app 做 opacity 淡变（0.3s），
+     掩盖 grid-template-columns 列数瞬间跳变（CSS transition 无法过渡离散列数，
+     View Transitions 对 resize 无效因回调内 DOM 无变化前后快照相同）。 */
   var resizeAnimTimer = null;
   var lastBreakpoint = getBreakpoint();
+  var bpFadeTimer = null;
   function getBreakpoint() {
     var w = window.innerWidth;
     if (w <= 560) return 560;
@@ -983,12 +985,16 @@
   }
   window.addEventListener('resize', function () {
     var curBp = getBreakpoint();
-    /* 跨越断点时用 View Transitions 交叉淡变（不支持则跳过，降级为瞬间切换） */
-    if (curBp !== lastBreakpoint && document.startViewTransition) {
-      document.startViewTransition(function () { lastBreakpoint = curBp; });
-    } else {
-      lastBreakpoint = curBp;
+    /* 跨越断点时用 GSAP opacity 淡变掩盖 grid 列数跳变 */
+    if (curBp !== lastBreakpoint && typeof gsap !== 'undefined') {
+      if (bpFadeTimer) clearTimeout(bpFadeTimer);
+      gsap.to('#app', { opacity: 0.3, duration: 0.15, ease: 'power2.out', onComplete: function () {
+        bpFadeTimer = setTimeout(function () {
+          gsap.to('#app', { opacity: 1, duration: 0.25, ease: 'power2.out' });
+        }, 50);
+      } });
     }
+    lastBreakpoint = curBp;
     clearTimeout(resizeAnimTimer);
     resizeAnimTimer = setTimeout(function () {
       if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;

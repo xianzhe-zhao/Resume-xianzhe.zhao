@@ -22,38 +22,44 @@ async function main() {
   await page.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await page.goto(BASE);
 
-  // 劫持 startViewTransition 计数
-  await page.eval(`window.__vtCount = 0; var orig = document.startViewTransition; document.startViewTransition = function(cb) { window.__vtCount++; return orig.call(document, cb); };`);
+  // 劫持 gsap.to 计数 #app opacity 变化
+  await page.eval(`window.__appOpacityChanges = []; var origTo = gsap.to; gsap.to = function(target, vars) { if (target === '#app' && vars && vars.opacity !== undefined) { window.__appOpacityChanges.push(vars.opacity); } return origTo.apply(gsap, arguments); };`);
 
   // 跨越 1000 断点：1440 → 950（桌面→平板）
   await page.send('Emulation.setDeviceMetricsOverride', { width: 950, height: 900, deviceScaleFactor: 1, mobile: false });
   await sleep(600);
-  const vt1 = await page.eval('window.__vtCount');
-  check('跨越 1000 断点（1440→950）触发 startViewTransition', vt1 >= 1, 'count=' + vt1);
+  const op1 = await page.eval('window.__appOpacityChanges');
+  check('跨越 1000 断点（1440→950）触发 #app opacity 淡变', op1.length >= 2, 'changes=' + JSON.stringify(op1));
 
   // 同断点内移动不触发：950 → 850（都在 ≤1000）
+  await page.eval(`window.__appOpacityChanges = []`);
   await page.send('Emulation.setDeviceMetricsOverride', { width: 850, height: 900, deviceScaleFactor: 1, mobile: false });
   await sleep(400);
-  const vt2 = await page.eval('window.__vtCount');
-  check('同断点内移动（950→850）不额外触发', vt2 === vt1, 'count=' + vt2 + ' vs ' + vt1);
+  const op2 = await page.eval('window.__appOpacityChanges');
+  check('同断点内移动（950→850）不触发淡变', op2.length === 0, 'changes=' + JSON.stringify(op2));
 
   // 跨越 760 断点：850 → 700（平板→手机）
   await page.send('Emulation.setDeviceMetricsOverride', { width: 700, height: 900, deviceScaleFactor: 2, mobile: true });
   await sleep(600);
-  const vt3 = await page.eval('window.__vtCount');
-  check('跨越 760 断点（850→700）触发 startViewTransition', vt3 >= vt2 + 1, 'count=' + vt3);
+  const op3 = await page.eval('window.__appOpacityChanges');
+  check('跨越 760 断点（850→700）触发淡变', op3.length >= 2, 'changes=' + JSON.stringify(op3));
 
   // 跨越 560 断点：700 → 500
   await page.send('Emulation.setDeviceMetricsOverride', { width: 500, height: 900, deviceScaleFactor: 2, mobile: true });
   await sleep(600);
-  const vt4 = await page.eval('window.__vtCount');
-  check('跨越 560 断点（700→500）触发 startViewTransition', vt4 >= vt3 + 1, 'count=' + vt4);
+  const op4 = await page.eval('window.__appOpacityChanges');
+  check('跨越 560 断点（700→500）触发淡变', op4.length >= 4, 'changes=' + JSON.stringify(op4));
 
-  // 回到桌面：500 → 1440（跨越多个断点）
+  // 回到桌面：500 → 1440
   await page.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await sleep(600);
-  const vt5 = await page.eval('window.__vtCount');
-  check('回到桌面（500→1440）触发 startViewTransition', vt5 >= vt4 + 1, 'count=' + vt5);
+  const op5 = await page.eval('window.__appOpacityChanges');
+  check('回到桌面（500→1440）触发淡变', op5.length >= 6, 'changes=' + JSON.stringify(op5));
+
+  // 确认淡变后 #app opacity 恢复 1
+  await sleep(800);
+  const finalOp = await page.eval(`parseFloat(getComputedStyle(document.getElementById('app')).opacity)`);
+  check('淡变后 #app opacity 恢复 1', finalOp >= 0.99, 'opacity=' + finalOp);
 
   check('全程无 JS 异常', page.jsErrors.length === 0, page.jsErrors.join(' | '));
 
