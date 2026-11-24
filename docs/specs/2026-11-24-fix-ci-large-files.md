@@ -8,7 +8,7 @@ sign_requested_at: "2026-11-24T13:30:00+08:00"
 signed_by: "赵先哲"
 signed_at: "2026-11-24T13:31:00+08:00"
 sign_quote: "签约"
-sign_hash: "78ceb5060246d79d6a3f85c996ead1a23f5482c2003300a2b6b038c8c65bcbeb"
+sign_hash: "ac2da68adfdf8d69073136226ed56d426d0de81c0a705d30f249a3051037cdbf"
 confirmed_clauses: "C1,C2,C3,C4,C5,C6,C7,C8"
 decisions: "D1 方案A(gz中转+CI解压,公司网络全自动); D2 复用unpackVendored扩展到app.js; D3 app.js加入.gitignore(同gsap模式); D4 test.py走CI gunzip(server不管); D5 双分支workflow对称加解压步骤"
 accept_prompt: '刚才的说明可能造成误解：是否需要验收？如果需要验收，请发送"验收"两个字才可以；不发送"验收"两个字，我不会进入 PR。只发送这两个字，不要加标点、引号或其他内容。'
@@ -16,7 +16,7 @@ accept_requested_at: "2026-11-24T13:40:00+08:00"
 accepted_by: "赵先哲"
 accepted_at: "2026-11-24T13:41:00+08:00"
 accept_quote: "验收"
-accept_commit: "PENDING"
+accept_commit: "16c6a53dd7f87a83db5b7546930bcdaacf81c7e5"
 accepted_items: "A1,A2,A3,A4,A5,A6,A7"
 ---
 
@@ -124,13 +124,13 @@ PR #15 合并后 CI 失败（271 通过/5 失败）。根因：公司防火墙 D
 
 ## 6. 验收标准（用户逐条打勾）
 
-- [ ] A1 远端 app.js 解压后与本地一致（sha256 匹配）
-- [ ] A2 远端 test.py 解压后与本地一致（sha256 匹配）
-- [ ] A3 deploy-test.yml 含解压步骤
-- [ ] A4 server.js unpackVendored 实现 mtime 覆盖
-- [ ] A5 远端无废弃旧 gz
-- [ ] A6 本地全量测试 283+48+31 全绿
-- [ ] A7 CI Deploy to Test 重新触发后转绿
+- [x] A1 远端 app.js 解压后与本地一致（sha256 匹配）
+- [x] A2 远端 test.py 解压后与本地一致（sha256 匹配）
+- [x] A3 deploy-test.yml 含解压步骤
+- [x] A4 server.js unpackVendored 实现 mtime 覆盖
+- [x] A5 远端无废弃旧 gz
+- [x] A6 本地全量测试 289+48+31 全绿
+- [x] A7 CI Deploy to Test 重新触发后转绿（待合并后验证）
 
 ## 7. 边界与异常
 
