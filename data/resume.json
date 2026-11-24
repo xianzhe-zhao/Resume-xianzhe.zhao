@@ -10,7 +10,8 @@
     "workYears": "9 年",
     "certs": [
       "三星 SW 高级算法认证",
-      "计算机二级"
+      "计算机二级",
+      "AWS Certified AI Practitioner"
     ],
     "skills": {
       "后端开发": [
@@ -37,7 +38,25 @@
       "AI / 云 / 系统": [
         "AWS",
         "LLM / Agent",
-        "Linux"
+        "Linux",
+        "RAG",
+        "MCP",
+        "Prompt Engineering"
+      ],
+      "AI Agent 工具": [
+        "DSH",
+        "Claude Code",
+        "Codex",
+        "灵光",
+        "WorkBuddy",
+        "CodeBuddy",
+        "Trae"
+      ],
+      "LLM 模型": [
+        "GLM",
+        "DeepSeek",
+        "QWEN",
+        "GPT"
       ]
     },
     "experience": [
@@ -119,8 +138,7 @@
       }
     ],
     "honors": [
-      "2021 上半年 \"SDSC 优秀员工\" 团体奖（三星）",
-      "亚马逊 AWS Certified AI Practitioner 认证"
+      "2021 上半年 \"SDSC 优秀员工\" 团体奖（三星）"
     ],
     "projects": [
       {
@@ -134,7 +152,9 @@
           "豹豹新闻：聚合 2150+ 篇科技文章，多源采集 + 分类浏览 + 高亮摘要",
           "项目管理：看板式任务管理（项目/列表/卡片三级结构），类似个人版 Trello",
           "日历日程：家庭日历 + 纪念日 + 年度重复，附 AI 每日问候（农历 + 天气 + 关怀语气）",
-          "智能家居：集成小米家居，支持空调/设备控制、房间管理、自动化与能耗建议"
+          "智能家居：集成小米家居，支持空调/设备控制、房间管理、自动化与能耗建议",
+          "豹豹文档：类飞书多人实时协作文档，Yjs CRDT 实时协同 + TipTap 富文本 + AI 辅助改写 + Word 导出，三服务架构（FastAPI 网关 + Node.js 协同服务 + Vue3 前端），支持离线编辑",
+          "设计规范沉淀：自研开源设计规范可视化工具（读取 DESIGN.md 自动渲染色板/字体阶梯/间距尺/Do-Don'ts 对照卡），单文件零依赖，已在豹豹助手与协作文档两个真实项目落地"
         ],
         "stack": [
           "Python",
@@ -143,7 +163,47 @@
           "PostgreSQL",
           "pgvector",
           "Agent",
-          "IoT"
+          "IoT",
+          "Vue3",
+          "Yjs",
+          "TipTap",
+          "WebSocket"
+        ]
+      },
+      {
+        "id": "ship-it",
+        "title": "ship-it · 编码→发布工作流 AI Agent Skill",
+        "badge": "独立开发",
+        "link": "https://github.com/xianzhe-zhao/ship-it",
+        "desc": "自研的 AI Agent 工作流 Skill：把「编码→发布」拆成 9 步契约流程，spec-first（先写规格说明再动手），每步产出机器可校验（check_spec.py 自动检查），支持团队模式多角色协作。已在自己全部项目中实际使用，累计产出 60+ 份 spec 契约。",
+        "items": [
+          "9 步契约流程：需求澄清 → spec → 实现 → 校验 → 发布，每步有明确产出物与验收标准",
+          "spec-first + 机器校验：check_spec.py 自动验证规格完整性，杜绝 AI 编码「跑偏」",
+          "团队模式：多角色分工（需求分析师 / 监察员 / 裁判员），适配真实协作场景"
+        ],
+        "stack": [
+          "AI Agent",
+          "Claude Code",
+          "Spec-driven",
+          "Python"
+        ]
+      },
+      {
+        "id": "knowledge-base",
+        "title": "个人知识库 · PARA 体系与自动归档管道",
+        "badge": "独立开发",
+        "link": "",
+        "desc": "基于 Obsidian PARA 方法论搭建的个人知识库：按 Projects / Areas / Resources / Archives 四层组织笔记与资料，配套自动归档管道——每天对话中产生的想法、决定和记录按日期自动整理，推送至 GitHub 私有仓库持久化，作为后续个人 RAG（检索增强问答）的数据源。",
+        "items": [
+          "PARA 四层结构：项目 / 领域 / 资源 / 归档，笔记与开发文档统一管理",
+          "每日自动归档：每日想法与决定按日期整理，定时推送 GitHub 私有仓库，零手工成本",
+          "RAG 数据收集阶段：DSH 会话经自研 dsh-kb-sync 插件自动归档入库，已积累 320+ 篇会话笔记作为个人检索问答数据源"
+        ],
+        "stack": [
+          "Obsidian",
+          "Git",
+          "Markdown",
+          "RAG"
         ]
       },
       {
@@ -165,27 +225,6 @@
           "MCP",
           "SSE"
         ]
-      },
-      {
-        "id": "deskshare",
-        "title": "Deskshare · 实时协作文档平台",
-        "badge": "独立开发",
-        "link": "",
-        "desc": "类飞书的多人实时协作文档平台：富文本编辑 + Yjs CRDT 协同 + AI 辅助改写 + Word 导出。三服务架构（Python 网关 + Node.js 协同服务 + Vue3 前端）。",
-        "items": [
-          "Yjs CRDT 实时协同 + Hocuspocus WebSocket 服务，MySQL 增量+快照持久化",
-          "TipTap v3 富文本编辑器 + y-indexeddb 本地缓存，支持离线编辑",
-          "AI 辅助改写（接入 Aipro API）+ python-docx Word 导出",
-          "FastAPI 网关（认证 + 文档 CRUD + 用户管理）+ 一键 start/stop 脚本"
-        ],
-        "stack": [
-          "Python",
-          "FastAPI",
-          "Vue3",
-          "Yjs",
-          "TipTap",
-          "WebSocket"
-        ]
       }
     ]
   },
@@ -193,7 +232,7 @@
     "ai": {
       "label": "AI 开发",
       "title": "AI 应用开发工程师",
-      "summary": "9 年世界 500 强（三星电子）IT 研发经验，兼具全栈开发功底与 AI 落地能力。持有 AWS Certified AI Practitioner 认证，独立在家开发并部署多功能个人 AI 助手「豹豹助手」（AI 对话 + 新闻 + 项目管理 + 日历 + 智能家居控制），另独立开发 API 桥接代理与协作文档平台，擅长将大模型与 AI 工具融入实际生活与业务。",
+      "summary": "9 年世界 500 强（三星电子）IT 研发经验，兼具全栈开发功底与 AI 落地能力。持有 AWS Certified AI Practitioner 认证，独立在家开发并部署多功能个人 AI 助手「豹豹助手」（AI 对话 + 新闻 + 项目管理 + 日历 + 智能家居控制 + 实时协作文档），另独立开发 API 桥接代理、编码发布工作流 Agent Skill 与个人知识库系统，擅长将大模型与 AI 工具融入实际生活与业务。",
       "advantages": [
         {
           "title": "AI 落地能力",
@@ -209,7 +248,7 @@
         },
         {
           "title": "技术热情与自驱",
-          "text": "业余独立开发 3 个完整项目（个人 AI 助手、API 桥接代理、协作文档平台），覆盖 Python/Node.js/Vue 全栈与 IoT 智能家居，保持对 AI 领域的持续探索。"
+          "text": "业余独立开发 4 个完整项目（个人 AI 助手、API 桥接代理、编码发布工作流 Agent Skill、个人知识库系统），覆盖 Python/Node.js/Vue 全栈与 IoT 智能家居，保持对 AI 领域的持续探索。"
         }
       ],
       "featuredProject": "baobao"
@@ -299,7 +338,8 @@
       "workYears": "9 years",
       "certs": [
         "Samsung SW Senior Algorithm Certification",
-        "National Computer Rank Examination Level 2"
+        "National Computer Rank Examination Level 2",
+        "AWS Certified AI Practitioner (Amazon)"
       ],
       "skills": {
         "Backend": [
@@ -326,7 +366,25 @@
         "AI / Cloud / Systems": [
           "AWS",
           "LLM / Agent",
-          "Linux"
+          "Linux",
+          "RAG",
+          "MCP",
+          "Prompt Engineering"
+        ],
+        "AI Agent Tools": [
+          "DSH",
+          "Claude Code",
+          "Codex",
+          "LingGuang",
+          "WorkBuddy",
+          "CodeBuddy",
+          "Trae"
+        ],
+        "LLM Models": [
+          "GLM",
+          "DeepSeek",
+          "QWEN",
+          "GPT"
         ]
       },
       "experience": [
@@ -408,8 +466,7 @@
         }
       ],
       "honors": [
-        "2021 H1 'SDSC Outstanding Employee' team award (Samsung)",
-        "AWS Certified AI Practitioner (Amazon)"
+        "2021 H1 'SDSC Outstanding Employee' team award (Samsung)"
       ],
       "projects": [
         {
@@ -423,7 +480,9 @@
             "Baobao News: aggregates 2,150+ tech articles with multi-source collection, categorization and highlighted summaries",
             "Project Management: kanban-style tasks (Project / List / Card three-level structure), a personal Trello",
             "Calendar: family calendar with anniversaries, yearly repeats and an AI daily greeting (lunar calendar + weather + caring tone)",
-            "Smart Home: Xiaomi integration — AC/device control, rooms, automations and energy-saving suggestions"
+            "Smart Home: Xiaomi integration — AC/device control, rooms, automations and energy-saving suggestions",
+            "Baobao Docs: Feishu-like real-time collaborative docs, Yjs CRDT collaboration + TipTap rich text + AI-assisted rewriting + Word export, three-service architecture (FastAPI gateway + Node.js collaboration service + Vue3 frontend), offline editing supported",
+            "Design system: self-developed open-source design-spec visualization tool (reads DESIGN.md to auto-render color palettes / type scales / spacing rulers / Do-Don't cards), single-file zero-dependency, landed in both Baobao Assistant and the collaborative docs"
           ],
           "stack": [
             "Python",
@@ -432,7 +491,47 @@
             "PostgreSQL",
             "pgvector",
             "Agent",
-            "IoT"
+            "IoT",
+            "Vue3",
+            "Yjs",
+            "TipTap",
+            "WebSocket"
+          ]
+        },
+        {
+          "id": "ship-it",
+          "title": "ship-it · Coding-to-Release Workflow AI Agent Skill",
+          "badge": "Solo-built",
+          "link": "https://github.com/xianzhe-zhao/ship-it",
+          "desc": "A self-developed AI Agent workflow Skill that breaks 'coding-to-release' into a 9-step contract process: spec-first (write the spec before coding), with machine-verifiable outputs at each step (check_spec.py auto-validation), supporting team-mode multi-role collaboration. Already used across all my own projects, accumulating 60+ spec contracts.",
+          "items": [
+            "9-step contract process: requirements clarification → spec → implementation → verification → release, each step with clear deliverables and acceptance criteria",
+            "Spec-first + machine validation: check_spec.py auto-validates spec completeness, preventing AI coding 'drift'",
+            "Team mode: multi-role division (requirements analyst / auditor / judge), adapting to real collaboration scenarios"
+          ],
+          "stack": [
+            "AI Agent",
+            "Claude Code",
+            "Spec-driven",
+            "Python"
+          ]
+        },
+        {
+          "id": "knowledge-base",
+          "title": "Personal Knowledge Base · PARA System & Auto-Archiving Pipeline",
+          "badge": "Solo-built",
+          "link": "",
+          "desc": "A personal knowledge base built on the Obsidian PARA methodology: notes and materials organized in four layers (Projects / Areas / Resources / Archives), with an auto-archiving pipeline that sorts daily ideas, decisions and records by date, pushes them to a private GitHub repo for persistence, serving as the data source for future personal RAG (retrieval-augmented Q&A).",
+          "items": [
+            "PARA four-layer structure: Projects / Areas / Resources / Archives, unified management of notes and dev docs",
+            "Daily auto-archiving: daily ideas and decisions sorted by date, pushed to a private GitHub repo on a schedule, zero manual cost",
+            "RAG data collection phase: DSH sessions auto-archived via the self-developed dsh-kb-sync plugin, 320+ session notes accumulated as the data source for personal retrieval Q&A"
+          ],
+          "stack": [
+            "Obsidian",
+            "Git",
+            "Markdown",
+            "RAG"
           ]
         },
         {
@@ -454,27 +553,6 @@
             "MCP",
             "SSE"
           ]
-        },
-        {
-          "id": "deskshare",
-          "title": "Deskshare · Real-time Collaborative Docs Platform",
-          "badge": "Solo-built",
-          "link": "",
-          "desc": "A Feishu-like real-time collaborative document platform: rich-text editing + Yjs CRDT collaboration + AI-assisted rewriting + Word export. Three-service architecture (Python gateway + Node.js collaboration service + Vue3 frontend).",
-          "items": [
-            "Yjs CRDT real-time collaboration + Hocuspocus WebSocket service, MySQL incremental + snapshot persistence",
-            "TipTap v3 rich-text editor + y-indexeddb local cache, offline editing supported",
-            "AI-assisted rewriting (Aipro API) + python-docx Word export",
-            "FastAPI gateway (auth + document CRUD + user management) + one-click start/stop scripts"
-          ],
-          "stack": [
-            "Python",
-            "FastAPI",
-            "Vue3",
-            "Yjs",
-            "TipTap",
-            "WebSocket"
-          ]
         }
       ]
     },
@@ -482,7 +560,7 @@
       "ai": {
         "label": "AI",
         "title": "AI Application Development Engineer",
-        "summary": "9 years of IT R&D at a Fortune 500 company (Samsung), combining full-stack development skills with AI implementation capability. AWS Certified AI Practitioner; independently developed and deployed the multi-functional personal AI assistant 'Baobao Assistant' (AI chat + news + project management + calendar + smart home control), plus a solo-built API bridging proxy and a collaborative docs platform. Skilled at integrating LLMs and AI tools into real life and business.",
+        "summary": "9 years of IT R&D at a Fortune 500 company (Samsung), combining full-stack development skills with AI implementation capability. AWS Certified AI Practitioner; independently developed and deployed the multi-functional personal AI assistant 'Baobao Assistant' (AI chat + news + project management + calendar + smart home control + real-time collaborative docs), plus a solo-built API bridging proxy, a coding-to-release workflow Agent Skill, and a personal knowledge base system. Skilled at integrating LLMs and AI tools into real life and business.",
         "advantages": [
           {
             "title": "AI Implementation",
@@ -498,7 +576,7 @@
           },
           {
             "title": "Passion & Self-Drive",
-            "text": "Three complete solo projects in spare time (personal AI assistant, API bridging proxy, collaborative docs platform) spanning Python/Node.js/Vue full-stack and IoT smart home, with continuous exploration of AI."
+            "text": "Four complete solo projects in spare time (personal AI assistant, API bridging proxy, coding-to-release workflow Agent Skill, personal knowledge base system) spanning Python/Node.js/Vue full-stack and IoT smart home, with continuous exploration of AI."
           }
         ],
         "featuredProject": "baobao"
