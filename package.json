@@ -1,6 +1,6 @@
 {
   "name": "resume",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "赵先哲 - 可管理的网页简历系统（多版本 + 管理后台 + 安全加固）",
   "main": "server.js",
   "scripts": {
