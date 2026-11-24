@@ -1,12 +1,16 @@
 {
   "name": "resume",
-  "version": "1.7.2",
+  "version": "1.8.1",
   "description": "赵先哲 - 可管理的网页简历系统（多版本 + 管理后台 + 安全加固）",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "python test/test.py"
   },
-  "keywords": ["resume", "cv", "portfolio"],
+  "keywords": [
+    "resume",
+    "cv",
+    "portfolio"
+  ],
   "license": "MIT"
 }
