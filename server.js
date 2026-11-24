@@ -229,8 +229,9 @@ function safeStatic(p) {
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 
 /* ---------- 启动时解压 vendored 库（.gz -> .js） ----------
-   公司防火墙拦截 >35KB 的上传，gsap/ScrollTrigger 以 .gz 形式入库，
-   服务器启动时自动解压为 .js（已存在则跳过）。零依赖，仅用内置 zlib。 */
+   公司防火墙拦截 >36KB 的上传，gsap/ScrollTrigger/app.js 等以 .gz 形式入库，
+   服务器启动时自动解压为同名去 .js 文件。gz 比 js 新（或 js 不存在）则覆盖，
+   否则跳过——既保证新版 gz 能更新旧 js，又不重复解压未变的库。零依赖，仅用内置 zlib。 */
 function unpackVendored() {
   let names;
   try { names = fs.readdirSync(PUBLIC_DIR); } catch (e) { return; }
@@ -238,8 +239,13 @@ function unpackVendored() {
     if (!name.endsWith('.gz')) continue;
     const gzPath = path.join(PUBLIC_DIR, name);
     const outPath = path.join(PUBLIC_DIR, name.slice(0, -3));
-    if (fs.existsSync(outPath)) continue; // 已解压则跳过
     try {
+      if (fs.existsSync(outPath)) {
+        // gz 比 js 新才覆盖（mtime 比较）；同样新旧视为已最新，跳过
+        const gzMtime = fs.statSync(gzPath).mtimeMs;
+        const jsMtime = fs.statSync(outPath).mtimeMs;
+        if (gzMtime <= jsMtime) continue;
+      }
       fs.writeFileSync(outPath, zlib.gunzipSync(fs.readFileSync(gzPath)));
       console.log('[unpack] ' + name + ' -> ' + path.basename(outPath));
     } catch (e) {
