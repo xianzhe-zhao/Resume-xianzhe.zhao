@@ -44,7 +44,7 @@ check("C1 不含运动健身(旧)", "title: '运动健身'" not in app_src, "仍
 # C2 项目卡片配真实图片
 print("\n[C2] 项目卡片图片")
 check("C2 PROJ_IMGS 映射存在", "PROJ_IMGS" in app_src, "缺 PROJ_IMGS")
-proj_files = {"baobao": "proj-baobao.png", "ship-it": "proj-shipit.png", "knowledge-base": "proj-kb.png", "aipro-bridge": "proj-aipro.png"}
+proj_files = {"baobao": "proj-baobao.jpg", "ship-it": "proj-shipit.jpg", "knowledge-base": "proj-kb.jpg", "aipro-bridge": "proj-aipro.jpg"}
 for pid, fn in proj_files.items():
     check(f"C2 PROJ_IMGS 含 {pid}", f"'{pid}'" in app_src, f"缺 {pid}")
     check(f"C2 图片文件 {fn}", os.path.isfile(os.path.join(IMG_DIR, fn)), f"缺 {fn}")
@@ -52,7 +52,7 @@ for pid, fn in proj_files.items():
 # C3 兴趣卡片配真实图片
 print("\n[C3] 兴趣卡片图片")
 check("C3 INTEREST_IMGS 映射存在", "INTEREST_IMGS" in app_src, "缺 INTEREST_IMGS")
-for fn in ["interest-tech.png", "interest-sport.png", "interest-photo.png"]:
+for fn in ["interest-tech.jpg", "interest-sport.jpg", "interest-photo.jpg"]:
     check(f"C3 图片文件 {fn}", os.path.isfile(os.path.join(IMG_DIR, fn)), f"缺 {fn}")
 
 # C4 svgArt 无图回退 SVG
