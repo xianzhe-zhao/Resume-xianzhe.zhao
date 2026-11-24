@@ -1,4 +1,23 @@
-# 更新日志 (CHANGELOG)
+# 更新日志
+
+## [1.8.1] - 2026-11-24
+
+### 兴趣改写 + 项目/兴趣配真实图片 + AI 工具技能组（spec：`docs/specs/2026-11-24-interest-images-update.md`）
+
+- **C1 兴趣 3 条改写**：技术折腾（4 个项目）、运动生活（羽毛球/徒步/游泳/健身）、摄影爱好（A7C2+2070G）
+- **C2-C3 配真实图片**：7 张主题图（豹豹助手暖色扁平 + 其余线描+暖橙点缀），svgArt 增加图片分支，无图回退 SVG
+- **C8-C9 技能栏新增**：AI Agent 工具组（DSH/Claude Code/Codex/灵光/WorkBuddy/CodeBuddy/Trae）+ LLM 模型组（GLM/DeepSeek/QWEN/GPT）
+- **文案对齐**：secProjectsNote/secSkillsNote/chips 项目数 3→4、技能 5→7 组
+- 测试：test.py 276/276 + 契约 48/48 + cdp-print 31/31
+
+## [1.8.0] - 2026-11-23
+
+### 简历内容更新：项目板块重组 + 多板块同步（spec：`docs/specs/2026-11-23-resume-content-update.md`）
+
+- 项目板块 3→4（豹豹助手含豹豹文档 → ship-it → 个人知识库 → AiPro Bridge）
+- ai 版 summary/advantages 更新、技能栏补 RAG/MCP/Prompt Engineering、证书荣誉口径统一、英文镜像
+
+ (CHANGELOG)
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 
