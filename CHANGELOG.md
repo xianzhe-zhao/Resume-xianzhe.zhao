@@ -1,5 +1,57 @@
 # 更新日志
 
+## [1.9.0] - 2026-11-24
+
+### 单版本化（仅留 /ai）+ HR 视角内容打磨（spec：`docs/specs/2026-11-24-single-version-hr-polish.md`）
+
+- **C1 单版本路由**：server.js VERSIONS 收缩为 ['ai']；/it /test /erp 302 重定向到 /ai（保留旧链接可用性）
+- **C2 删除旧版本数据**：resume.json 删除 versions.it/test/erp + en.versions.it/test/erp（6 个版本块）
+- **C3 stats 项目数修正**：3→4（与实际 4 个独立项目一致）
+- **C4 summary 重写**：求职目标开场 + AI Native + 9 年 + AWS + 4 项目主干，拆短去密
+- **C5 advantage 功能数对齐**：summary 与「AI 落地能力」统一为 6 功能（含实时协作文档）
+- **C6 荣誉去重**：experience ERP 项目「荣誉」item 改为「团队赋能」业绩；SDSC 奖仅在 honors 区出现一次
+- **C7 去「在家」措辞**：summary 与豹豹助手 desc 的「在家」改为「独立开发并部署上线」
+- **C8 link 补全**：知识库 desc 注明「私有项目，面试可演示」
+- **C9 app.js 版本字典简化**：VER_SHORT/VER_SHORT_EN 仅留 ai
+- **C10 测试收缩**：test.py 6 处版本断言改为单版本 + 新增旧 URL 302 重定向断言
+- **C11 技能组改名**：「AI Agent 工具」→「AI 编程工具」/「AI Agent Tools」→「AI Coding Tools」（HR 视角更直白）
+- **C12 advantage 第四条去重**：从罗列 4 个项目改为强调「持续学习 + 开源 ship-it + 学做沉淀闭环」，避免与 summary 重复
+- **C13 RMS 成长轨迹**：工作经历「持续迭代」item 补「从核心开发逐步承担架构设计与技术方案把关」演进
+- **C14 去「业余」措辞**：summary 与 advantage 的「业余/in spare time」改为「自主立项/independently initiated」，突出主动性
+- admin 后台本轮不动（后续单独优化）
+
+### 测试
+- test.py + test_interest_images.py + test_resume_content.py 全套保持 PASS
+## [1.8.3] - 2026-11-24
+
+### 技能栈补齐 + CodeBuddy 移除 + 占位文案精简（spec：`docs/specs/2026-11-24-skills-polish-codebuddy-remove.md`）
+
+- **C1 后端开发组**：补 Python、C++、JSON（5→8 项），JSON 作为接口/数据交换格式并入该组
+- **C2 前端开发组**：补 TipTap（3→4 项，Deskshare 协作文档项目实证）
+- **C3 数据库/自动化组**：补 MySQL、Python 自动化（2→4 项）
+- **C4 ERP/报表组**：补 SAP GUI、ERP WEB GUI（3→5 项）
+- **C5 AI Agent 工具组**：移除 CodeBuddy 单项（7→6 项，组保留：DSH/Claude Code/Codex/灵光/WorkBuddy/Trae）；同步删除 app.js 图标定义与测试断言
+- **C7 secOffDutyNote**：去掉占位后缀，只留「工作之外，也在认真生活。」/「Life beyond work.」
+- **C8 interests 卡片**：移除 hint「后续可替换 / 增加图片」文案 + 渲染改条件判断（中英双语）
+- **C9 app.js ICONS**：删除 CodeBuddy 图标定义
+- 技能组数维持 7（不增不减分组）；AI/云/系统组、LLM 模型组不变
+- 中英双语镜像同步
+
+### 测试
+- test/test.py + test/test_interest_images.py + test/test_resume_content.py + cdp-print 全套保持 PASS
+- test_interest_images.py C8 断言由 7 项改 6 项（去 CodeBuddy）
+## [1.8.2] - 2026-11-24
+
+### 修复 CI 大文件缺失：app.js/test.py 未进远端（spec：`docs/specs/2026-11-24-fix-ci-large-files.md`）
+
+- **背景**：PR #15 合并后 CI 失败。公司防火墙 DPI 拦截 >36KB 的 Contents API 上传，导致 app.js(61KB)/test.py(52KB) 从未进远端，远端旧 test.py 断言技能组=5 对着新版 resume.json(7组)失败。
+- **C1** server.js `unpackVendored()` 改 mtime 覆盖逻辑（gz 比 js 新则覆盖）
+- **C2/C3** 新增 `public/app.js.gz`(18KB) + `test/test.py.gz`(17.5KB)，均在 36KB 阈值内可穿防火墙
+- **C4/C5** deploy-test.yml + deploy-prod.yml 加 `Restore large files from .gz` 解压步骤
+- **C6** 清理废弃旧 gz
+- **C7** `public/app.js` 加入 .gitignore（与 gsap 模式一致，由 gz 解压生成）
+- **C8** 测试：test.py 289/289 + test_interest_images 48/48 + cdp-print 31/31
+
 ## [1.8.1] - 2026-11-24
 
 ### 兴趣改写 + 项目/兴趣配真实图片 + AI 工具技能组（spec：`docs/specs/2026-11-24-interest-images-update.md`）
