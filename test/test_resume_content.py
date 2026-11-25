@@ -134,10 +134,8 @@ check("C6 保留豹豹助手", "豹豹助手" in summary, "丢豹豹助手")
 print("\n[C7] 技术热情与自驱优势")
 adv3 = versions["ai"]["advantages"][3]
 check("C7 含 4 个完整项目", "4 个完整项目" in adv3["text"], "缺 4 个完整项目")
-check("C7 含个人 AI 助手", "个人 AI 助手" in adv3["text"], "缺个人 AI 助手")
-check("C7 含 API 桥接代理", "API 桥接代理" in adv3["text"], "缺 API 桥接代理")
-check("C7 含编码发布工作流 Agent Skill", "编码发布工作流 Agent Skill" in adv3["text"], "缺编码发布工作流")
-check("C7 含个人知识库系统", "个人知识库系统" in adv3["text"], "缺个人知识库系统")
+check("C7 含开源 ship-it", "ship-it" in adv3["text"], "缺开源 ship-it")
+check("C7 含学做沉淀闭环", "闭环" in adv3["text"], "缺学做沉淀闭环")
 check("C7 不含 3 个项目", "3 个完整项目" not in adv3["text"], "仍写 3 个项目")
 
 # ---- C8 技能栏 AI/云/系统补充 ----
@@ -196,16 +194,13 @@ check("C11 en ai summary 含 Four/coding-to-release/knowledge base",
       "coding-to-release" in en_versions["ai"]["summary"] and "knowledge base" in en_versions["ai"]["summary"],
       "en summary 缺关键词")
 en_adv3 = en_versions["ai"]["advantages"][3]
-check("C11 en adv[3] 含 Four complete", "Four complete" in en_adv3["text"], f"en adv3: {en_adv3['text'][:60]}")
+check("C11 en adv[3] 含 4 complete + ship-it", "4 complete" in en_adv3["text"] and "ship-it" in en_adv3["text"], f"en adv3: {en_adv3['text'][:60]}")
 
-# ---- C12 it/test/erp 三版不变 ----
-print("\n[C12] it/test/erp 三版不变")
-check("C12 it summary 不含个人项目列举", "独立开发" not in versions["it"]["summary"], "it summary 被改")
-check("C12 test summary 不含个人项目列举", "独立开发" not in versions["test"]["summary"], "test summary 被改")
-check("C12 erp summary 不含个人项目列举", "独立开发" not in versions["erp"]["summary"], "erp summary 被改")
-check("C12 it advantages 数=4", len(versions["it"]["advantages"]) == 4, "it adv 数变")
-check("C12 test advantages 数=4", len(versions["test"]["advantages"]) == 4, "test adv 数变")
-check("C12 erp advantages 数=4", len(versions["erp"]["advantages"]) == 4, "erp adv 数变")
+# ---- C12 it/test/erp 已下线（单版本化，仅留 ai）----
+print("\n[C12] it/test/erp 已下线（单版本化）")
+check("C12 versions 仅含 ai", set(versions.keys()) == {"ai"}, f"多余版本: {set(versions.keys())}")
+check("C12 en versions 仅含 ai", set(en_versions.keys()) == {"ai"}, f"en 多余版本: {set(en_versions.keys())}")
+check("C12 it/test/erp 已删除", all(v not in versions for v in ("it","test","erp")), "旧版本未删干净")
 
 print("\n" + "=" * 60)
 print(f"通过: {passed}   失败: {failed}   总计: {passed+failed}")

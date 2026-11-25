@@ -35,7 +35,7 @@ if (!ADMIN_PASSWORD || ADMIN_PASSWORD === 'admin123') {
   process.exit(1);
 }
 
-const VERSIONS = ['ai', 'it', 'test', 'erp'];
+const VERSIONS = ['ai'];
 const DEFAULT_VERSION = 'ai';
 
 const sessions = {}; // 内存会话，重启失效
@@ -443,6 +443,8 @@ async function handleRequest(req, res) {
 
   // 页面路由
   if (p === '/') { res.writeHead(302, { Location: '/' + DEFAULT_VERSION }); return res.end(); }
+  // 已下线版本重定向到默认版本（保留旧链接可用性）
+  if (['/it', '/test', '/erp'].includes(p)) { res.writeHead(302, { Location: '/' + DEFAULT_VERSION }); return res.end(); }
   if (VERSIONS.includes(p.slice(1))) return servePublicPage(res, p.slice(1));
   if (p === '/admin') {
     const html = fs.readFileSync(path.join(PUBLIC_DIR, 'admin.html'), 'utf8');

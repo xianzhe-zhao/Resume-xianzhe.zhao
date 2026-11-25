@@ -79,14 +79,14 @@ check("C7 en Tech Tinkering 4 projects", "Four complete solo projects" in app_sr
 check("C7 en Sports Life", "Sports Life" in app_src and "Badminton" in app_src, "缺 Sports Life")
 check("C7 en Photography A7C2", "Photography" in app_src and "A7C2" in app_src, "缺 Photography")
 
-# C8 技能栏 AI Agent 工具组
-print("\n[C8] AI Agent 工具组")
+# C8 技能栏 AI 编程工具组
+print("\n[C8] AI 编程工具组")
 skills = d["base"].get("skills", {})
 check("C8 技能组数=7", len(skills) == 7, f"got {len(skills)}")
-check("C8 含 AI Agent 工具组", "AI Agent 工具" in skills, "缺 AI Agent 工具组")
-ai_tools = skills.get("AI Agent 工具", [])
-check("C8 AI Agent 工具 7 项", len(ai_tools) == 7, f"got {len(ai_tools)}")
-for t in ["DSH", "Claude Code", "Codex", "灵光", "WorkBuddy", "CodeBuddy", "Trae"]:
+check("C8 含 AI 编程工具组", "AI 编程工具" in skills, "缺 AI 编程工具组")
+ai_tools = skills.get("AI 编程工具", [])
+check("C8 AI 编程工具 6 项", len(ai_tools) == 6, f"got {len(ai_tools)}")
+for t in ["DSH", "Claude Code", "Codex", "灵光", "WorkBuddy", "Trae"]:
     check(f"C8 含 {t}", t in ai_tools, f"缺 {t}")
 
 # C9 技能栏 LLM 模型组
@@ -98,7 +98,7 @@ for t in ["GLM", "DeepSeek", "QWEN", "GPT"]:
     check(f"C9 含 {t}", t in llm, f"缺 {t}")
 en_skills = d["en"]["base"].get("skills", {})
 check("C9 en 技能组数=7", len(en_skills) == 7, f"got {len(en_skills)}")
-check("C9 en AI Agent Tools", "AI Agent Tools" in en_skills, "缺 en AI Agent Tools")
+check("C9 en AI Coding Tools", "AI Coding Tools" in en_skills, "缺 en AI Coding Tools")
 check("C9 en LLM Models", "LLM Models" in en_skills, "缺 en LLM Models")
 
 print("\n" + "=" * 60)
