@@ -18,20 +18,28 @@
         "Java",
         "ASP.Net",
         "ABAP",
+        "Python",
+        "C++",
         "REST API",
+        "JSON",
         "JWT"
       ],
       "前端开发": [
         "Vue.js",
         "JavaScript",
-        "小程序"
+        "小程序",
+        "TipTap"
       ],
       "数据库 / 自动化": [
         "PostgreSQL",
-        "Brity Works RPA"
+        "MySQL",
+        "Brity Works RPA",
+        "Python 自动化"
       ],
       "ERP / 报表": [
         "SAP Hybris",
+        "SAP GUI",
+        "ERP WEB GUI",
         "Next ERP",
         "Crystal Reports"
       ],
@@ -43,13 +51,12 @@
         "MCP",
         "Prompt Engineering"
       ],
-      "AI Agent 工具": [
+      "AI 编程工具": [
         "DSH",
         "Claude Code",
         "Codex",
         "灵光",
         "WorkBuddy",
-        "CodeBuddy",
         "Trae"
       ],
       "LLM 模型": [
@@ -82,8 +89,8 @@
                 "text": "负责 PostgreSQL 数据库日常运维与性能调优，通过索引优化与查询优化，显著提升复杂报表生成速度"
               },
               {
-                "label": "持续迭代",
-                "text": "4.5 年持续响应业务需求变更、迭代功能，系统服务三星内部用户，保障业务重大事务顺利运行"
+                "label": "持续迭代与成长",
+                "text": "4.5 年持续响应业务需求变更、迭代功能，从核心模块开发逐步承担架构设计与技术方案把关，系统服务三星内部用户，保障业务重大事务顺利运行"
               }
             ]
           },
@@ -122,8 +129,8 @@
                 "text": "使用 Crystal Reports 开发定制业务报表，为管理层提供精准数据决策支持"
               },
               {
-                "label": "荣誉",
-                "text": "凭借项目出色表现与团队协作，荣获 2021 上半年 \"SDSC 优秀员工\" 团体奖"
+                "label": "团队赋能",
+                "text": "牵头 ERP 实施过程中的跨部门培训与知识转移，沉淀标准化实施手册，缩短后续模块上线周期"
               }
             ]
           }
@@ -146,7 +153,7 @@
         "title": "豹豹助手 · 个人 AI 助手平台",
         "badge": "独立开发",
         "link": "https://zxz0608.com/",
-        "desc": "独立在家开发并部署在个人电脑的多功能个人 AI 助手，以卡通海豹为品牌形象。不止于对话，集成 AI 新闻、项目管理、日历日程、智能家居控制于一体，覆盖日常生活全场景。零 CDN 依赖，纯离线可运行。",
+        "desc": "独立开发并部署上线的多功能个人 AI 助手，以卡通海豹为品牌形象。不止于对话，集成 AI 新闻、项目管理、日历日程、智能家居控制于一体，覆盖日常生活全场景。零 CDN 依赖，纯离线可运行。",
         "items": [
           "AI 对话：多轮会话 + 附件 + 会话分支 + 反馈，多模型切换 + Agent 工具调用 + SSE 流式输出 + pgvector 长期记忆",
           "豹豹新闻：聚合 2150+ 篇科技文章，多源采集 + 分类浏览 + 高亮摘要",
@@ -193,7 +200,7 @@
         "title": "个人知识库 · PARA 体系与自动归档管道",
         "badge": "独立开发",
         "link": "",
-        "desc": "基于 Obsidian PARA 方法论搭建的个人知识库：按 Projects / Areas / Resources / Archives 四层组织笔记与资料，配套自动归档管道——每天对话中产生的想法、决定和记录按日期自动整理，推送至 GitHub 私有仓库持久化，作为后续个人 RAG（检索增强问答）的数据源。",
+        "desc": "基于 Obsidian PARA 方法论搭建的个人知识库：按 Projects / Areas / Resources / Archives 四层组织笔记与资料，配套自动归档管道——每天对话中产生的想法、决定和记录按日期自动整理，推送至 GitHub 私有仓库持久化，作为后续个人 RAG（检索增强问答）的数据源。私有项目，面试可演示。",
         "items": [
           "PARA 四层结构：项目 / 领域 / 资源 / 归档，笔记与开发文档统一管理",
           "每日自动归档：每日想法与决定按日期整理，定时推送 GitHub 私有仓库，零手工成本",
@@ -232,11 +239,11 @@
     "ai": {
       "label": "AI 开发",
       "title": "AI 应用开发工程师",
-      "summary": "9 年世界 500 强（三星电子）IT 研发经验，兼具全栈开发功底与 AI 落地能力。持有 AWS Certified AI Practitioner 认证，独立在家开发并部署多功能个人 AI 助手「豹豹助手」（AI 对话 + 新闻 + 项目管理 + 日历 + 智能家居控制 + 实时协作文档），另独立开发 API 桥接代理、编码发布工作流 Agent Skill 与个人知识库系统，擅长将大模型与 AI 工具融入实际生活与业务。",
+      "summary": "志在成为一名 AI 应用开发工程师，以 AI Native 思维把大模型能力落地到真实业务与生活。9 年世界 500 强（三星电子）IT 研发经验，持有 AWS Certified AI Practitioner 认证；自主立项开发并部署上线 4 个完整项目——多功能个人 AI 助手「豹豹助手」（含 AI 对话、新闻、项目管理、日历、智能家居 + 实时协作文档）、API 桥接代理、编码发布工作流 Agent Skill、个人知识库系统，覆盖 Python/Node.js/Vue 全栈与 IoT 智能家居。",
       "advantages": [
         {
           "title": "AI 落地能力",
-          "text": "AWS Certified AI Practitioner 认证，独立开发多功能个人 AI 助手「豹豹助手」，集成 AI 对话、新闻聚合、项目管理、日历、智能家居控制于一体，将大模型能力融入日常生活全场景。"
+          "text": "秉持 AI Native 思维——以 AI 为第一生产力独立完成从构思到落地，持有 AWS Certified AI Practitioner 认证，独立开发并部署上线多功能个人 AI 助手「豹豹助手」，集成 AI 对话、新闻聚合、项目管理、日历、智能家居控制、实时协作文档于一体，将大模型能力融入日常生活全场景。"
         },
         {
           "title": "全栈开发",
@@ -248,79 +255,7 @@
         },
         {
           "title": "技术热情与自驱",
-          "text": "业余独立开发 4 个完整项目（个人 AI 助手、API 桥接代理、编码发布工作流 Agent Skill、个人知识库系统），覆盖 Python/Node.js/Vue 全栈与 IoT 智能家居，保持对 AI 领域的持续探索。"
-        }
-      ],
-      "featuredProject": "baobao"
-    },
-    "it": {
-      "label": "IT 技术支持",
-      "title": "IT 技术支持工程师",
-      "summary": "9 年世界 500 强（三星电子）IT 研发与运维经验，长期负责核心业务系统的开发、运维与稳定性保障。擅长系统故障排查、性能调优、自动化运维与跨部门技术支持，保障业务系统稳定运行。",
-      "advantages": [
-        {
-          "title": "系统运维与稳定性",
-          "text": "长期负责 RMS 核心系统运维，PostgreSQL 性能调优，保障高并发场景下系统稳定运行，处理大量线上问题。"
-        },
-        {
-          "title": "自动化运维提效",
-          "text": "基于 Brity Works RPA 自动化各业务系统与 Excel 工作流，每年替代约 1400 小时人工操作，显著降低运维人力成本。"
-        },
-        {
-          "title": "全栈排障能力",
-          "text": "精通 Java/ASP.Net/Vue.js/PostgreSQL 全栈，能快速定位前后端、数据库各层问题，独立解决复杂故障。"
-        },
-        {
-          "title": "跨部门协作",
-          "text": "在三星跨部门协作中把控进度与质量，负责技术支持与需求对接，确保业务问题按时高质量解决。"
-        }
-      ],
-      "featuredProject": "baobao"
-    },
-    "test": {
-      "label": "测试",
-      "title": "测试开发工程师",
-      "summary": "9 年世界 500 强（三星电子）研发经验，深度参与核心系统全生命周期，具备扎实的质量保障意识。擅长从开发视角理解系统，进行功能、性能与接口测试，通过数据库优化与自动化手段提升系统质量与稳定性。",
-      "advantages": [
-        {
-          "title": "质量保障意识",
-          "text": "4.5 年持续迭代 RMS 系统，注重代码质量与测试覆盖，通过索引优化与查询优化保障复杂报表准确性与性能。"
-        },
-        {
-          "title": "测试开发能力",
-          "text": "精通 Java/ASP.Net/Vue.js/PostgreSQL 全栈，能编写自动化测试脚本，从开发视角设计高质量测试用例。"
-        },
-        {
-          "title": "性能与稳定性",
-          "text": "负责 PostgreSQL 性能调优与系统稳定性保障，具备性能测试与瓶颈定位能力，保障高并发场景稳定。"
-        },
-        {
-          "title": "自动化提效",
-          "text": "基于 RPA 与脚本实现流程自动化，每年替代约 1400 小时人工操作，可迁移至自动化测试场景。"
-        }
-      ],
-      "featuredProject": "baobao"
-    },
-    "erp": {
-      "label": "ERP",
-      "title": "ERP 实施顾问",
-      "summary": "9 年世界 500 强（三星电子）IT 经验，主导 Next ERP 项目实施与管理，参与 SAP Hybris 电商项目，精通大型 ERP 系统业务支持与二次开发。擅长跨平台、跨系统复杂对接，具备项目管理与数据治理能力，保障企业级数据流高效稳定。",
-      "advantages": [
-        {
-          "title": "ERP 项目管理",
-          "text": "担任 Next ERP 项目经理，负责进度控制、资源协调与风险管理，确保项目按期平滑上线，获 2021 上半年 \"SDSC 优秀员工\"。"
-        },
-        {
-          "title": "复杂系统对接",
-          "text": "参与中国 eStore（SAP Hybris）项目，负责电商模块与 ERP 系统对接，解决跨地域业务数据同步等复杂问题。"
-        },
-        {
-          "title": "数据治理与报表",
-          "text": "使用 Crystal Reports 开发定制业务报表，负责 PostgreSQL 数据治理与性能调优，为管理层提供数据决策支持。"
-        },
-        {
-          "title": "全栈二次开发",
-          "text": "精通 Java/ASP.Net/Vue.js/ABAP，具备 ERP 二次开发与接口开发能力，能独立实现复杂业务需求。"
+          "text": "保持对 AI 领域的持续学习与探索，自主立项开发 4 个完整项目并开源编码发布工作流 Skill（ship-it），把工作中沉淀的方法论沉淀为可复用工具，形成「学→做→沉淀」闭环。"
         }
       ],
       "featuredProject": "baobao"
@@ -346,20 +281,28 @@
           "Java",
           "ASP.Net",
           "ABAP",
+          "Python",
+          "C++",
           "REST API",
+          "JSON",
           "JWT"
         ],
         "Frontend": [
           "Vue.js",
           "JavaScript",
-          "Mini Programs"
+          "Mini Programs",
+          "TipTap"
         ],
         "Database / Automation": [
           "PostgreSQL",
-          "Brity Works RPA"
+          "MySQL",
+          "Brity Works RPA",
+          "Python Automation"
         ],
         "ERP / Reporting": [
           "SAP Hybris",
+          "SAP GUI",
+          "ERP WEB GUI",
           "Next ERP",
           "Crystal Reports"
         ],
@@ -371,13 +314,12 @@
           "MCP",
           "Prompt Engineering"
         ],
-        "AI Agent Tools": [
+        "AI Coding Tools": [
           "DSH",
           "Claude Code",
           "Codex",
           "LingGuang",
           "WorkBuddy",
-          "CodeBuddy",
           "Trae"
         ],
         "LLM Models": [
@@ -410,8 +352,8 @@
                   "text": "Owned PostgreSQL daily operations and performance tuning; significantly improved complex report generation speed through index and query optimization"
                 },
                 {
-                  "label": "Continuous Iteration",
-                  "text": "4.5 years of continuous business requirement response and feature iteration; the system serves internal Samsung users and keeps critical business operations running smoothly"
+                  "label": "Continuous Iteration & Growth",
+                  "text": "4.5 years of continuous business requirement response and feature iteration; grew from core module development into owning architecture design and technical decisions; the system serves internal Samsung users and keeps critical business operations running smoothly"
                 }
               ]
             },
@@ -450,8 +392,8 @@
                   "text": "Developed custom business reports with Crystal Reports, providing management with accurate data for decision-making"
                 },
                 {
-                  "label": "Recognition",
-                  "text": "Awarded the 2021 H1 'SDSC Outstanding Employee' team award for outstanding project delivery and collaboration"
+                  "label": "Team Enablement",
+                  "text": "Led cross-department training and knowledge transfer during ERP rollout, distilling standardized implementation playbooks that shortened subsequent module go-live cycles"
                 }
               ]
             }
@@ -474,7 +416,7 @@
           "title": "Baobao Assistant · Personal AI Assistant Platform",
           "badge": "Solo-built",
           "link": "https://zxz0608.com/",
-          "desc": "A multi-functional personal AI assistant developed and deployed independently on a home PC, with a cartoon seal as its brand image. More than just chat — it integrates AI news, project management, calendar and smart home control, covering everyday life scenarios. Zero CDN dependencies, fully offline-capable.",
+          "desc": "A multi-functional personal AI assistant developed and deployed independently, with a cartoon seal as its brand image. More than just chat — it integrates AI news, project management, calendar and smart home control, covering everyday life scenarios. Zero CDN dependencies, fully offline-capable.",
           "items": [
             "AI Chat: multi-turn conversations with attachments, conversation branching and feedback; multi-model switching + Agent tool calling + SSE streaming + pgvector long-term memory",
             "Baobao News: aggregates 2,150+ tech articles with multi-source collection, categorization and highlighted summaries",
@@ -521,7 +463,7 @@
           "title": "Personal Knowledge Base · PARA System & Auto-Archiving Pipeline",
           "badge": "Solo-built",
           "link": "",
-          "desc": "A personal knowledge base built on the Obsidian PARA methodology: notes and materials organized in four layers (Projects / Areas / Resources / Archives), with an auto-archiving pipeline that sorts daily ideas, decisions and records by date, pushes them to a private GitHub repo for persistence, serving as the data source for future personal RAG (retrieval-augmented Q&A).",
+          "desc": "A personal knowledge base built on the Obsidian PARA methodology: notes and materials organized in four layers (Projects / Areas / Resources / Archives), with an auto-archiving pipeline that sorts daily ideas, decisions and records by date, pushes them to a private GitHub repo for persistence, serving as the data source for future personal RAG (retrieval-augmented Q&A). Private project, demo available on request.",
           "items": [
             "PARA four-layer structure: Projects / Areas / Resources / Archives, unified management of notes and dev docs",
             "Daily auto-archiving: daily ideas and decisions sorted by date, pushed to a private GitHub repo on a schedule, zero manual cost",
@@ -560,11 +502,11 @@
       "ai": {
         "label": "AI",
         "title": "AI Application Development Engineer",
-        "summary": "9 years of IT R&D at a Fortune 500 company (Samsung), combining full-stack development skills with AI implementation capability. AWS Certified AI Practitioner; independently developed and deployed the multi-functional personal AI assistant 'Baobao Assistant' (AI chat + news + project management + calendar + smart home control + real-time collaborative docs), plus a solo-built API bridging proxy, a coding-to-release workflow Agent Skill, and a personal knowledge base system. Skilled at integrating LLMs and AI tools into real life and business.",
+        "summary": "Aiming to work as an AI Application Development Engineer, applying an AI Native mindset to land LLM capabilities in real business and daily life. 9 years of IT R&D at a Fortune 500 company (Samsung), AWS Certified AI Practitioner; independently initiated and deployed 4 complete projects — the multi-functional personal AI assistant 'Baobao Assistant', an API bridging proxy, a coding-to-release workflow Agent Skill, and a personal knowledge base system — spanning Python/Node.js/Vue full-stack and IoT smart home.",
         "advantages": [
           {
             "title": "AI Implementation",
-            "text": "AWS Certified AI Practitioner; built the multi-functional personal AI assistant 'Baobao Assistant' integrating AI chat, news aggregation, project management, calendar and smart home control, bringing LLM capabilities into everyday scenarios."
+            "text": "AI Native mindset — treats AI as the primary engine and independently drives ideas from concept to deployment; AWS Certified AI Practitioner; built and deployed the multi-functional personal AI assistant 'Baobao Assistant' integrating AI chat, news aggregation, project management, calendar, smart home control and real-time collaborative docs, bringing LLM capabilities into everyday scenarios."
           },
           {
             "title": "Full-Stack Development",
@@ -576,79 +518,7 @@
           },
           {
             "title": "Passion & Self-Drive",
-            "text": "Four complete solo projects in spare time (personal AI assistant, API bridging proxy, coding-to-release workflow Agent Skill, personal knowledge base system) spanning Python/Node.js/Vue full-stack and IoT smart home, with continuous exploration of AI."
-          }
-        ],
-        "featuredProject": "baobao"
-      },
-      "it": {
-        "label": "IT",
-        "title": "IT Technical Support Engineer",
-        "summary": "9 years of IT R&D and operations at a Fortune 500 company (Samsung), long responsible for development, operations and stability of core business systems. Skilled in fault diagnosis, performance tuning, automated operations and cross-department technical support, keeping business systems running stably.",
-        "advantages": [
-          {
-            "title": "Operations & Stability",
-            "text": "Long-term ownership of RMS core system operations and PostgreSQL performance tuning, keeping the system stable under high concurrency and handling a large volume of production issues."
-          },
-          {
-            "title": "Automation Efficiency",
-            "text": "Automated business systems and Excel workflows with Brity Works RPA, replacing about 1,400 hours of manual work per year and significantly cutting ops labor cost."
-          },
-          {
-            "title": "Full-Stack Troubleshooting",
-            "text": "Proficient across the Java/ASP.Net/Vue.js/PostgreSQL full stack; quickly locates issues at frontend, backend and database layers and resolves complex faults independently."
-          },
-          {
-            "title": "Cross-Team Collaboration",
-            "text": "In Samsung's cross-department collaboration, controlled schedule and quality, owned technical support and requirement alignment, ensuring business issues were resolved on time and at high quality."
-          }
-        ],
-        "featuredProject": "baobao"
-      },
-      "test": {
-        "label": "Test",
-        "title": "Test Development Engineer",
-        "summary": "9 years of R&D at a Fortune 500 company (Samsung) with deep involvement in the full lifecycle of core systems and a solid quality-assurance mindset. Skilled at understanding systems from a developer's perspective to perform functional, performance and API testing, and improving system quality and stability through database optimization and automation.",
-        "advantages": [
-          {
-            "title": "Quality Mindset",
-            "text": "4.5 years of continuous RMS iteration with emphasis on code quality and test coverage; index and query optimization kept complex reports accurate and fast."
-          },
-          {
-            "title": "Test Development",
-            "text": "Proficient across the Java/ASP.Net/Vue.js/PostgreSQL full stack; writes automated test scripts and designs high-quality test cases from a developer's perspective."
-          },
-          {
-            "title": "Performance & Stability",
-            "text": "Owned PostgreSQL performance tuning and system stability, with performance testing and bottleneck localization skills for high-concurrency scenarios."
-          },
-          {
-            "title": "Automation Efficiency",
-            "text": "Delivered process automation with RPA and scripts, replacing about 1,400 hours of manual work per year — transferable to automated testing scenarios."
-          }
-        ],
-        "featuredProject": "baobao"
-      },
-      "erp": {
-        "label": "ERP",
-        "title": "ERP Implementation Consultant",
-        "summary": "9 years of IT experience at a Fortune 500 company (Samsung); led Next ERP project delivery and management and participated in the SAP Hybris e-commerce project. Proficient in business support and secondary development of large ERP systems, skilled at complex cross-platform integration, with project management and data governance skills to keep enterprise data flows efficient and stable.",
-        "advantages": [
-          {
-            "title": "ERP Project Management",
-            "text": "Served as Next ERP project manager owning schedule control, resource coordination and risk management; delivered on time and won the 2021 H1 'SDSC Outstanding Employee' award."
-          },
-          {
-            "title": "Complex System Integration",
-            "text": "Participated in the China eStore (SAP Hybris) project, integrating the e-commerce module with ERP and resolving complex issues such as cross-region data synchronization."
-          },
-          {
-            "title": "Data Governance & Reporting",
-            "text": "Built custom business reports with Crystal Reports; owned PostgreSQL data governance and performance tuning to support management decision-making."
-          },
-          {
-            "title": "Full-Stack Secondary Development",
-            "text": "Proficient in Java/ASP.Net/Vue.js/ABAP with ERP secondary development and API development skills, independently delivering complex business requirements."
+            "text": "Continuously learning and exploring AI; self-initiated 4 complete projects and open-sourced the coding-to-release workflow Skill (ship-it), turning workplace methodology into reusable tools — a learn → build → distill loop."
           }
         ],
         "featuredProject": "baobao"
