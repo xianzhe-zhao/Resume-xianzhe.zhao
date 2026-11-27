@@ -20,6 +20,30 @@
 **回滚**：`git revert <merge-commit>` 后推 main 触发自动重部署
 
 
+## [2.0.0] - 2026-11-27 ⚠️ 破坏性更新
+
+### 以 canon 为唯一事实来源 + 四方向重建 + Admin 大改 + 面试题库（spec：docs/specs/2026-11-27-v8-integrate-four-directions.md）
+
+> ⚠️ 破坏性：版本结构从单 /ai 重组为四方向（ai/fullstack/erp/pm），/erp 链接语义从重定向变为有效页。base 内容大幅重写对齐 docs/canon/profile.md（唯一事实来源）。
+
+- **C1 四方向路由**：server.js VERSIONS 扩为 ['ai','fullstack','erp','pm']；/erp 从 302 重定向转为有效路由；/it /test 保留 302→/ai
+- **C2 base 对齐 canon**：删除 age/gender；workYears 改「9 年工作经验 · 8 年技术研发」；skills 7→9 组（删 C++/SAP GUI/ERP WEB GUI，补 TypeScript/FastAPI/pgvector/BGE/Vite/Jenkins/PM2/Cloudflare Tunnel/ReAct/SQL Server/微信小程序）；experience 3→4 段（补 .NET→Java 全量重构 + RMS RAG 问答机器人）；employer 改「Samsung SDS」（去「三星电子」）；RMS 起始 2019.07
+- **C3 versions 四方向**：ai/fullstack/erp/pm 各含 label/title/summary/advantages/featuredProject
+- **C4 app.js hardcode 修正**：VER_SHORT/NOW_TAG/chips/stats/expMetrics/projMetrics 扩四方向；去过时数字（9年/4.5年/2150+/世界500强）；projMetrics.baobao 改「28 工具」
+- **C5 Admin 大改**：删 gender/age 编辑；新增 skills/experience/education 编辑入口；新增 featuredProject 选择
+- **C6 面试题库数据+API**：新建 data/interview.json（45 题 7 分类）；新增 GET /api/interview（公开）+ POST /api/interview/save（需登录 + XSS 校验）
+- **C7 面试题库 admin tab**：/admin 新增「面试题库」tab，按分类列表 + 行内编辑 + 按 dirs 方向筛选 + 增删
+- **C8 同步提示**：简历保存时扫描被改字段，与 interview.json 的 rel 比对，返回 needsReview 提示复核（不自动改写答案）
+- **C9 test.py 修绿**：6 处版本断言改新四方向 + skills 9 组 + 豹豹 6 项 + 面试题库 API 测试（此前 KeyError 'it' 崩溃，本轮修绿）
+- **C10 test_resume_content/test_interest_images 适配 canon**：按契约派生原则更新断言
+- **C11 内容真实性不变式 🔒**：canon 13 个量化数字锁定；雇主口径锁定；无 age/gender/科长级
+
+### 唯一事实来源
+- 新建 docs/canon/profile.md：简历唯一权威源，后续网页/PDF/面试题库全部以此派生
+
+### 测试
+- test.py 285/0 + test_interest_images.py 47/0 + test_resume_content.py 80/0 全套 PASS
+
 ## [1.9.0] - 2026-11-24
 
 ### 单版本化（仅留 /ai）+ HR 视角内容打磨（spec：`docs/specs/2026-11-24-single-version-hr-polish.md`）

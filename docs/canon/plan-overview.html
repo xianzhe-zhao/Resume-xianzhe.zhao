@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>方案说明 v3 · 最终范围（canon 落地 + 前端 + Admin 大改 + D3 面试题库）</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f3ef;color:#2a2620;font:15px/1.75 -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 24px 120px}
+header{background:linear-gradient(160deg,#3d3529,#5a4a36);color:#fff;padding:26px 24px;border-radius:14px;margin-bottom:24px}
+header h1{margin:0 0 6px;font-size:21px;font-weight:600}
+header p{margin:0;color:#d8cdb9;font-size:13.5px}
+.meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:#b8ad97}
+.meta span{background:rgba(255,255,255,.1);padding:3px 10px;border-radius:6px}
+section{background:#fff;border:1px solid #e4ddd0;border-radius:12px;padding:20px 22px;margin-bottom:18px}
+section h2{margin:0 0 4px;font-size:17px;font-weight:600;color:#3d3529;border-bottom:2px solid #e08a3c;padding-bottom:8px}
+section .lead{font-size:13.5px;color:#7a7060;margin:6px 0 14px}
+.bad{color:#b03a2e;font-weight:600}
+.good{color:#1e7e34;font-weight:600}
+.warn{color:#a8631a;font-weight:600}
+.del{background:#fce8e6;padding:1px 5px;border-radius:4px;text-decoration:line-through;color:#999}
+.add{background:#e8f5e9;padding:1px 5px;border-radius:4px;color:#1b5e20}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+th,td{border:1px solid #e4ddd0;padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#faf5ec;color:#3d3529;font-weight:600}
+tr:nth-child(even) td{background:#fcfaf6}
+.file{display:inline-block;background:#3d3529;color:#fff;padding:2px 9px;border-radius:6px;font:12px Consolas,monospace}
+.kbd{background:#f4efe6;border:1px solid #d8cdb9;border-radius:5px;padding:1px 6px;font:12.5px Consolas,monospace;color:#5a4a36}
+.tag{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11.5px;font-weight:600}
+.t-del{background:#fce8e6;color:#b03a2e}
+.t-add{background:#e8f5e9;color:#1e7e34}
+.t-mod{background:#fef3e3;color:#a8631a}
+.t-new{background:#3d3529;color:#fff}
+.callout{background:#faf5ec;border-left:4px solid #e08a3c;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13.5px}
+.callout strong{color:#3d3529}
+.alert{background:#fce8e6;border-left:4px solid #b03a2e;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13.5px}
+ul.tight{margin:6px 0;padding-left:22px}
+ul.tight li{margin:3px 0}
+.out-of-scope{background:#f0ece6;border:1px dashed #c9bfa9;border-radius:8px;padding:12px 16px;margin:10px 0;font-size:13px;color:#7a7060}
+.confirmed{background:#e8f5e9;border:1px solid #a8d8b8;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:13.5px}
+.confirmed strong{color:#1e7e34}
+.signbox{background:#3d3529;color:#fff;border-radius:12px;padding:18px 22px;margin-top:24px}
+.signbox h3{margin:0 0 8px;font-size:16px}
+.signbox p{margin:6px 0;font-size:13.5px;color:#d8cdb9}
+.signbox .quote{background:rgba(255,255,255,.1);padding:10px 14px;border-radius:8px;font-size:13.5px;margin:10px 0}
+footer{font-size:12.5px;color:#7a7060;text-align:center;margin-top:30px}
+@media(max-width:640px){.wrap{padding:18px 14px 80px}section{padding:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>方案说明 v3 · 最终范围</h1>
+  <p>canon 落地 + 前端 hardcode 修正 + Admin 大改 + D3 面试题库（一个 spec 全覆盖）</p>
+  <div class="meta">
+    <span>ship-it v5.2.1</span>
+    <span>canon：docs/canon/profile.md</span>
+    <span>v1.9.0 → v2.0.0（major）</span>
+    <span>已确认范围 A</span>
+  </div>
+</header>
+
+<section>
+  <h2>一、已确认决策</h2>
+  <div class="confirmed"><strong>范围</strong>：切法 A —— canon 落地 + 前端 hardcode 修正 + Admin 大改 + D3 面试题库，一个 spec 全做</div>
+  <div class="confirmed"><strong>skills 组数</strong>：9 组（8 技术 + AI 编程工具）</div>
+  <div class="confirmed"><strong>Admin</strong>：方案 C 大改（含 skills/experience/education 编辑 + 四方向独立编辑 + featuredProject + 面试题库 tab）</div>
+  <div class="confirmed"><strong>NOW_TAG</strong>：ai='AI 落地' / fullstack='全栈交付' / erp='ERP 交付' / pm='项目交付'</div>
+  <div class="confirmed"><strong>projMetrics.baobao</strong>：'28 工具'（去掉会变的 2150+）</div>
+  <div class="confirmed"><strong>stats</strong>：9年·8年研发 / 1400h / 近7年 / 4个</div>
+</section>
+
+<section>
+  <h2>二、四大工作块</h2>
+  <table>
+    <tr><th>块</th><th>内容</th><th>涉及文件</th></tr>
+    <tr><td><strong>① canon 落地</strong></td><td>resume.json base 对齐 canon + versions 四方向 + server.js 四方向路由 + /erp 转有效</td><td>resume.json / server.js</td></tr>
+    <tr><td><strong>② 前端 hardcode 修正</strong></td><td>app.js 里 VER_SHORT/NOW_TAG/chips/stats/expMetrics/projMetrics 扩四方向 + 过时数字修正</td><td>public/app.js</td></tr>
+    <tr><td><strong>③ Admin 大改</strong></td><td>删 gender/age + 加 skills/experience/education 编辑 + 四方向独立编辑 + featuredProject 选择</td><td>public/admin.js / admin.css</td></tr>
+    <tr><td><strong>④ D3 面试题库</strong></td><td>data/interview.json + /api/interview API + /admin 面试题库 tab + 按方向 dirs 筛选</td><td>data/interview.json / server.js / admin.js / admin.css</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>三、D3 面试题库设计</h2>
+  <div class="lead">种子：handoff/面试准备清单.html 的 45 题 7 分类（A 开场5/B RAG 9/C 11/D 7/E 5/F 5/G 3）。</div>
+
+  <h3 style="font-size:15px">3.1 数据层 data/interview.json</h3>
+  <pre style="background:#faf5ec;padding:12px;border-radius:8px;font-size:12.5px;overflow-x:auto">{
+  "categories": [
+    {
+      "id": "rag", "label": "RAG 系统",
+      "items": [
+        {
+          "id": "rag-pgvector",
+          "q": "为什么用 pgvector 不用 Milvus？",
+          "a": ["已有 PostgreSQL...", "引入新组件成本..."],
+          "tags": ["必答"],
+          "rel": ["experience.0.projects.0"],
+          "dirs": ["ai", "fullstack"]
+        }
+      ]
+    }
+  ]
+}</pre>
+  <table>
+    <tr><th>字段</th><th>用途</th></tr>
+    <tr><td>id</td><td>题目唯一标识</td></tr>
+    <tr><td>q</td><td>问题</td></tr>
+    <tr><td>a</td><td>答案要点数组</td></tr>
+    <tr><td>tags</td><td>必答/高频/诚实作答</td></tr>
+    <tr><td>rel</td><td>关联 resume.json 字段路径（简历改动时提示复核）</td></tr>
+    <tr><td>dirs</td><td>所属求职方向（ai/fullstack/erp/pm），实现按方向筛选</td></tr>
+  </table>
+
+  <h3 style="font-size:15px;margin-top:14px">3.2 API 层（server.js 新增）</h3>
+  <table>
+    <tr><th>API</th><th>方法</th><th>鉴权</th><th>用途</th></tr>
+    <tr><td>/api/interview</td><td>GET</td><td>公开</td><td>返回 interview.json（脱敏无需，全是题目）</td></tr>
+    <tr><td>/api/interview/save</td><td>POST</td><td>需登录</td><td>保存题库（复用 /api/save 鉴权机制）</td></tr>
+  </table>
+
+  <h3 style="font-size:15px;margin-top:14px">3.3 Admin 层（admin.js 新增 tab）</h3>
+  <ul class="tight">
+    <li>顶部新增「面试题库」tab（与版本 tab 并列）</li>
+    <li>按分类列表 + 行内编辑（q/a/tags/dirs）+ 增删题目/分类</li>
+    <li>按 dirs 方向筛选（复用 handoff 清单的 chip 筛选交互）</li>
+    <li>编辑后即时预览</li>
+  </ul>
+
+  <h3 style="font-size:15px;margin-top:14px">3.4 同步机制（关键）</h3>
+  <div class="callout">简历改动后<strong>只提示复核，不自动改写答案</strong>（避免事实漂移）：每条答案通过 rel 绑定简历字段；简历保存时扫描被改字段；后台提示「以下 N 条面试答案引用了你刚修改的经历，请复核」。</div>
+</section>
+
+<section>
+  <h2>四、Admin 大改设计</h2>
+  <table>
+    <tr><th>改动</th><th>详情</th></tr>
+    <tr><td><span class="tag t-del">删</span></td><td>gender/age 编辑项（canon 已删）</td></tr>
+    <tr><td><span class="tag t-add">加</span></td><td>skills 编辑入口：分组列表 + 每组技能数组行内编辑 + 增删分组/技能</td></tr>
+    <tr><td><span class="tag t-add">加</span></td><td>experience 编辑入口：段列表 + 每段(company/role/period/projects/items) + 增删</td></tr>
+    <tr><td><span class="tag t-add">加</span></td><td>education 编辑入口</td></tr>
+    <tr><td><span class="tag t-add">加</span></td><td>featuredProject 选择（下拉选项目 id）</td></tr>
+    <tr><td><span class="tag t-add">加</span></td><td>四方向独立编辑（tab 已自适应，补 featuredProject + 各方向 advantages）</td></tr>
+    <tr><td><span class="tag t-add">加</span></td><td>面试题库 tab（见第三节）</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>五、完整文件清单</h2>
+  <table>
+    <tr><th>文件</th><th>改动</th></tr>
+    <tr><td><span class="file">data/resume.json</span></td><td>base 对齐 canon + versions 四方向</td></tr>
+    <tr><td><span class="file">data/interview.json</span></td><td><span class="tag t-new">新建</span> 45 题 7 分类种子</td></tr>
+    <tr><td><span class="file">server.js</span></td><td>VERSIONS 四方向 + /erp 有效 + /api/interview(GET) + /api/interview/save(POST)</td></tr>
+    <tr><td><span class="file">public/app.js</span></td><td>hardcode 修正（VER_SHORT/NOW_TAG/chips/stats/metrics 扩四方向 + 过时数字）</td></tr>
+    <tr><td><span class="file">public/admin.js</span></td><td>大改：删 gender/age + skills/experience/education 编辑 + featuredProject + 面试题库 tab</td></tr>
+    <tr><td><span class="file">public/admin.css</span></td><td>新增 skills/experience/面试题库编辑区样式</td></tr>
+    <tr><td><span class="file">test/test.py</span></td><td>6 处版本断言改新四方向 + skills 9 组 + 豹豹 6 项 + 面试题库 API 测试</td></tr>
+    <tr><td><span class="file">test/test_resume_content.py</span></td><td>若 ai 内容断言与 canon 冲突则适配</td></tr>
+    <tr><td><span class="file">CHANGELOG.md</span></td><td>v2.0.0 条目</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>六、不做的事</h2>
+  <div class="out-of-scope">
+    <ul class="tight">
+      <li>英文版 en 同步 —— 后续 spec（D4）</li>
+      <li>打印/PDF —— 已实现，不重做</li>
+      <li>引入任何依赖 —— 零约束</li>
+      <li>改 style.css / index.html 布局</li>
+      <li>chips/stats/metrics 挪进 resume.json —— 后续</li>
+    </ul>
+  </div>
+</section>
+
+<div class="signbox">
+  <h3>下一步</h3>
+  <p>本方案说明已是最终版。我现在把它落成 spec 契约（docs/specs/2026-11-27-v8-integrate-four-directions.md），过 check_spec draft 闸门，然后请你<strong>「签约」</strong>才开始编码。</p>
+  <div class="quote">签约只认「签约」两个字；继续/同意/可以/确认/按这个做 均不算。</div>
+</div>
+
+<footer>
+  本方案说明基于 docs/canon/profile.md + 实勘全部代码生成。生成日期 2026-11-27 ｜ ship-it v5.2.1
+</footer>
+</div>
+</body>
+</html>

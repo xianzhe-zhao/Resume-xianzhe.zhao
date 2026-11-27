@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>简历唯一事实来源 · 信息确认表</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f3ef;color:#2a2620;font:15px/1.75 -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:28px 24px 120px}
+header{background:linear-gradient(160deg,#3d3529,#5a4a36);color:#fff;padding:26px 24px;border-radius:14px;margin-bottom:24px}
+header h1{margin:0 0 6px;font-size:22px;font-weight:600}
+header p{margin:0;color:#d8cdb9;font-size:13.5px}
+.toolbar{position:sticky;top:0;z-index:9;background:rgba(245,243,239,.95);backdrop-filter:blur(8px);padding:12px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #e4ddd0;margin-bottom:22px}
+.toolbar .sp{flex:1}
+.btn{padding:9px 16px;border:1px solid #c9bfa9;border-radius:9px;background:#fff;color:#3d3529;font-size:14px;cursor:pointer;font-weight:500;transition:.15s}
+.btn:hover{background:#f1e7d3;border-color:#a89878}
+.btn.primary{background:#3d3529;color:#fff;border-color:#3d3529}
+.btn.primary:hover{background:#5a4a36}
+.saved-tag{font-size:12.5px;color:#5a8a5a}
+.q{background:#fff;border:1px solid #e4ddd0;border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.q h3{margin:0 0 4px;font-size:15.5px;font-weight:600;color:#3d3529;display:flex;align-items:center;gap:8px}
+.q h3 .idx{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:#e08a3c;color:#fff;font-size:13px;font-weight:700;flex-shrink:0}
+.q .ctx{font-size:13px;color:#7a7060;margin:6px 0 12px;padding:10px 12px;background:#faf5ec;border-radius:8px;border-left:3px solid #e08a3c}
+.q .opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #e4ddd0;border-radius:9px;cursor:pointer;transition:.12s}
+.opt:hover{background:#faf5ec}
+.opt.sel{background:#fdf3e3;border-color:#e08a3c}
+.opt input{margin-top:3px;accent-color:#e08a3c;flex-shrink:0}
+.opt .txt{flex:1}
+.opt .lbl{font-weight:500;color:#3d3529;font-size:14px}
+.opt .ds{font-size:12.5px;color:#7a7060;margin-top:2px}
+.free textarea{width:100%;min-height:70px;padding:10px 12px;border:1px solid #c9bfa9;border-radius:9px;font:inherit;font-size:14px;resize:vertical;outline:none}
+.free textarea:focus{border-color:#e08a3c;box-shadow:0 0 0 3px rgba(224,138,60,.12)}
+.note{font-size:12.5px;color:#7a7060;margin-top:8px}
+.section-title{font-size:13px;font-weight:600;color:#a89878;letter-spacing:.08em;margin:28px 0 12px;text-transform:uppercase}
+.empty-fill{margin-top:10px}
+.empty-fill input{width:100%;padding:9px 12px;border:1px solid #c9bfa9;border-radius:9px;font:inherit;font-size:14px;outline:none}
+.empty-fill input:focus{border-color:#e08a3c}
+footer{font-size:12.5px;color:#7a7060;text-align:center;margin-top:30px;line-height:1.6}
+@media(max-width:640px){.wrap{padding:18px 14px 80px}header{padding:22px 18px}.q{padding:14px 16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>简历唯一事实来源 · 信息确认表</h1>
+  <p>请逐题填写。浏览器自动保存（localStorage），刷新不丢。填完点「导出 JSON」把文件发给我，我来生成 docs/canon/profile.md。</p>
+</header>
+
+<div class="toolbar">
+  <button class="btn primary" id="exportBtn">⬇ 导出 JSON</button>
+  <button class="btn" id="copyBtn">📋 复制 JSON</button>
+  <button class="btn" id="showBtn">👁 显示 JSON</button>
+  <button class="btn" id="clearBtn">🗑 清空</button>
+  <span class="sp"></span>
+  <span class="saved-tag" id="savedTag">已自动保存</span>
+</div>
+<div id="jsonBox" style="display:none;background:#fff;border:1px solid #c9bfa9;border-radius:10px;padding:14px;margin-bottom:18px">
+  <div style="font-size:13px;color:#7a7060;margin-bottom:8px">下方文本框是你的答案 JSON。可全选复制粘贴给我；也可按 Ctrl+S 存成 .json 文件。</div>
+  <textarea id="jsonOut" style="width:100%;min-height:200px;font:12px/1.5 Consolas,monospace;padding:10px;border:1px solid #c9bfa9;border-radius:8px;resize:vertical" readonly></textarea>
+  <div style="margin-top:8px"><button class="btn" id="selAllBtn">全选文本</button></div>
+</div>
+
+<form id="form">
+
+<!-- ========== A. SQL Server ========== -->
+<div class="q" data-q="A_sqlserver">
+  <h3><span class="idx">A</span>SQL Server 是否列入技能？</h3>
+  <div class="ctx">v8 定稿在「数据」组标了【待确认】。RMS 是 .NET 系统，常配 SQL Server，但 handoff 只提了 MySQL + PostgreSQL。</div>
+  <div class="opts">
+    <label class="opt"><input type="radio" name="A_sqlserver" value="yes-used"><div class="txt"><div class="lbl">用过，列入技能</div><div class="ds">RMS 或其他项目实际用过 SQL Server，作为技能保留</div></div></label>
+    <label class="opt"><input type="radio" name="A_sqlserver" value="no-drop"><div class="txt"><div class="lbl">没用过，删掉</div><div class="ds">不列入，避免被追问露馅</div></div></label>
+    <label class="opt"><input type="radio" name="A_sqlserver" value="uncertain"><div class="txt"><div class="lbl">不确定 / 想再说</div><div class="ds">需要更多上下文才能判断</div></div></label>
+  </div>
+  <div class="free empty-fill"><textarea name="A_sqlserver_note" placeholder="补充说明（可选）：比如在哪个项目用过、用到什么程度"></textarea></div>
+</div>
+
+<!-- ========== B. 微信小程序 ========== -->
+<div class="q" data-q="B_miniprogram">
+  <h3><span class="idx">B</span>微信小程序是否列入技能？</h3>
+  <div class="ctx">v8 技能有「微信小程序」，但 handoff 没提来源。</div>
+  <div class="opts">
+    <label class="opt"><input type="radio" name="B_miniprogram" value="yes-done"><div class="txt"><div class="lbl">做过，列入</div><div class="ds">有实际微信小程序项目经验</div></div></label>
+    <label class="opt"><input type="radio" name="B_miniprogram" value="no-drop"><div class="txt"><div class="lbl">没做过，删掉</div><div class="ds">不列入</div></div></label>
+    <label class="opt"><input type="radio" name="B_miniprogram" value="learned-only"><div class="txt"><div class="lbl">只学过/了解，不列入</div><div class="ds">学过但没实战项目，不放技能里</div></div></label>
+  </div>
+  <div class="free empty-fill"><textarea name="B_miniprogram_note" placeholder="补充说明（可选）：做过的话是哪个项目"></textarea></div>
+</div>
+
+<!-- ========== C. 豹豹助手呈现方式 ========== -->
+<div class="q" data-q="C_baobao">
+  <h3><span class="idx">C</span>豹豹助手怎么呈现？</h3>
+  <div class="ctx">resume.json 现在是 7 项功能列表；v8 倾向技术决策要点；test.py 期望 5 项。三方不一致。</div>
+  <div class="opts">
+    <label class="opt"><input type="radio" name="C_baobao" value="features"><div class="txt"><div class="lbl">功能列表为主</div><div class="ds">对话/新闻/项目/日历/智能家居/文档等功能项，HR 易懂</div></div></label>
+    <label class="opt"><input type="radio" name="C_baobao" value="tech"><div class="txt"><div class="lbl">技术决策为主</div><div class="ds">28工具/5轮/伪工具调用/双模型路由/pgvector记忆，面试官爱看</div></div></label>
+    <label class="opt"><input type="radio" name="C_baobao" value="both"><div class="txt"><div class="lbl">两者结合（推荐）</div><div class="ds">前面讲功能覆盖，后面点关键技术决策</div></div></label>
+  </div>
+  <div class="free"><label style="font-size:13px;color:#7a7060">想要几条？（影响篇幅，v8 建议 5-7 条）</label><br>
+    <input type="number" name="C_baobao_count" min="3" max="10" value="6" style="width:80px;padding:8px;border:1px solid #c9bfa9;border-radius:9px;font:inherit">
+  </div>
+  <div class="free empty-fill"><textarea name="C_baobao_note" placeholder="补充说明（可选）：有没有特别想突出或不想写的点"></textarea></div>
+</div>
+
+<!-- ========== D. 知识库 / AiPro Bridge ========== -->
+<div class="q" data-q="D_side_projects">
+  <h3><span class="idx">D</span>知识库 / AiPro Bridge 两个项目保留吗？</h3>
+  <div class="ctx">resume.json 有这两个（有详细描述），v8 只详写了豹豹助手 + ship-it。</div>
+  <div class="opts">
+    <label class="opt"><input type="checkbox" name="D_keep_kb" value="knowledge-base"><div class="txt"><div class="lbl">保留「个人知识库 · PARA 体系」</div><div class="ds">Obsidian PARA + 自动归档 + RAG 数据源，私有可演示</div></div></label>
+    <label class="opt"><input type="checkbox" name="D_keep_bridge" value="aipro-bridge"><div class="txt"><div class="lbl">保留「AiPro Bridge · API 桥接代理」</div><div class="ds">零依赖 Node 代理，OpenAI/Anthropic/Chat 互转</div></div></label>
+  </div>
+  <div class="free empty-fill"><textarea name="D_note" placeholder="补充说明（可选）：比如只想保留其中一个、或想精简描述"></textarea></div>
+</div>
+
+<!-- ========== E. SDSC 优秀员工团体奖 ========== -->
+<div class="q" data-q="E_sdsc">
+  <h3><span class="idx">E</span>SDSC 优秀员工团体奖保留吗？</h3>
+  <div class="ctx">resume.json honors 有「2021上半年 SDSC 优秀员工团体奖」，v8 没提。</div>
+  <div class="opts">
+    <label class="opt"><input type="radio" name="E_sdsc" value="keep"><div class="txt"><div class="lbl">保留</div><div class="ds">写在荣誉区，是真实的团体奖项</div></div></label>
+    <label class="opt"><input type="radio" name="E_sdsc" value="drop"><div class="txt"><div class="lbl">删掉</div><div class="ds">团体奖分量一般，或不想要</div></div></label>
+  </div>
+  <div class="free empty-fill"><textarea name="E_note" placeholder="补充说明（可选）"></textarea></div>
+</div>
+
+<!-- ========== F. AI 编程工具组 ========== -->
+<div class="q" data-q="F_ai_tools">
+  <h3><span class="idx">F</span>AI 编程工具组（DSH/Claude Code/Codex/灵光/WorkBuddy/Trae）保留吗？</h3>
+  <div class="ctx">resume.json 有这一组技能，v8 没有。这组反映你日常用 AI 编程的能力。</div>
+  <div class="opts">
+    <label class="opt"><input type="radio" name="F_ai_tools" value="keep-group"><div class="txt"><div class="lbl">保留为一组</div><div class="ds">作为独立技能组，体现 AI 编程熟练度</div></div></label>
+    <label class="opt"><input type="radio" name="F_ai_tools" value="merge"><div class="txt"><div class="lbl">并入其他组</div><div class="ds">比如并入「AI 工程」组，减少分组数</div></div></label>
+    <label class="opt"><input type="radio" name="F_ai_tools" value="drop"><div class="txt"><div class="lbl">删掉</div><div class="ds">不作为技能展示</div></div></label>
+  </div>
+  <div class="free empty-fill"><textarea name="F_note" placeholder="补充说明（可选）：这六个工具是否都还要？要不要增减"></textarea></div>
+</div>
+
+<!-- ========== G. 职级与服务范围位置 ========== -->
+<div class="q" data-q="G_level">
+  <h3><span class="idx">G</span>职级「科长级」和服务范围「大陆·台湾·香港」放哪里？</h3>
+  <div class="ctx">v8 放在标题旁和工作经历开头。需要确认呈现位置。</div>
+  <div class="opts">
+    <label class="opt"><input type="radio" name="G_level" value="both"><div class="txt"><div class="lbl">两处都放（v8 做法，推荐）</div><div class="ds">标题旁放职级，工作经历开头放服务范围</div></div></label>
+    <label class="opt"><input type="radio" name="G_level" value="level-only"><div class="txt"><div class="lbl">只放职级</div><div class="ds">标题旁放职级，服务范围不写</div></div></label>
+    <label class="opt"><input type="radio" name="G_level" value="scope-only"><div class="txt"><div class="lbl">只放服务范围</div><div class="ds">工作经历开头放服务范围，职级不写</div></div></label>
+    <label class="opt"><input type="radio" name="G_level" value="neither"><div class="txt"><div class="lbl">都不放</div><div class="ds">职级和服务范围都不出现在简历</div></div></label>
+  </div>
+  <div class="free empty-fill"><textarea name="G_note" placeholder="补充说明（可选）"></textarea></div>
+</div>
+
+<div class="section-title">还有其他你想补充或纠正的吗</div>
+<div class="q" data-q="Z_extra">
+  <h3 style="font-weight:500"><span class="idx" style="background:#7a7060">+</span>自由补充</h3>
+  <div class="ctx">任何你觉得 v8 定稿或 resume.json 里写得不对、遗漏、或想加的内容，都可以写在这里。我会据此调整最终版。</div>
+  <div class="free"><textarea name="Z_extra" placeholder="自由发挥……比如某个数字记错了、某段经历想换个说法、想加某个项目等" style="min-height:120px"></textarea></div>
+</div>
+
+</form>
+
+<footer>
+  填写内容仅保存在你本地浏览器（localStorage），不上传任何服务器。<br>
+  导出的 JSON 我用来生成 docs/canon/profile.md（简历唯一事实来源）。
+</footer>
+</div>
+
+<script>
+var KEY='resume_canon_form_v1';
+var form=document.getElementById('form');
+
+// 读取已保存
+function load(){
+  try{var s=JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return;}
+  Object.keys(s).forEach(function(k){
+    var els=form.querySelectorAll('[name="'+k+'"]');
+    if(!els.length)return;
+    if(els[0].type==='radio'){
+      els.forEach(function(el){if(el.value===s[k])el.checked=true;});
+    }else if(els[0].type==='checkbox'){
+      var arr=s[k]||[];
+      els.forEach(function(el){el.checked=arr.indexOf(el.value)>=0;});
+    }else{
+      els[0].value=s[k];
+    }
+  });
+  refreshOptSel();
+}
+
+// 收集
+function collect(){
+  var fd=new FormData(form);
+  var o={};
+  fd.forEach(function(v,k){
+    if(o[k]!==undefined){
+      if(!Array.isArray(o[k]))o[k]=[o[k]];
+      o[k].push(v);
+    }else{o[k]=v;}
+  });
+  // checkbox 单独处理为数组
+  form.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+    if(!(cb.name in o))o[cb.name]=[];
+    else if(!Array.isArray(o[cb.name]))o[cb.name]=[o[cb.name]];
+  });
+  return o;
+}
+
+// 保存
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(collect()));
+  var t=document.getElementById('savedTag');
+  t.textContent='已保存 '+new Date().toLocaleTimeString();
+  t.style.color='#5a8a5a';
+  refreshOptSel();
+}
+
+// 选中态高亮
+function refreshOptSel(){
+  document.querySelectorAll('.opt').forEach(function(opt){
+    var inp=opt.querySelector('input');
+    if(inp&&inp.type==='radio'||inp&&inp.type==='checkbox'){
+      if(inp.checked)opt.classList.add('sel');else opt.classList.remove('sel');
+    }
+  });
+}
+
+form.addEventListener('change',save);
+form.addEventListener('input',function(){refreshOptSel();});
+
+// 导出 JSON 文件
+document.getElementById('exportBtn').onclick=function(){
+  var data=collect();
+  data['_exported_at']=new Date().toISOString();
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='resume-canon-answers-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+};
+
+// 复制 JSON
+document.getElementById('copyBtn').onclick=function(){
+  var data=collect();
+  data['_exported_at']=new Date().toISOString();
+  var txt=JSON.stringify(data,null,2);
+  navigator.clipboard.writeText(txt).then(function(){
+    var b=document.getElementById('copyBtn');b.textContent='✓ 已复制';setTimeout(function(){b.textContent='📋 复制 JSON';},1500);
+  });
+};
+
+// 显示 JSON（页内打印，规避下载/剪贴板被拦）
+document.getElementById('showBtn').onclick=function(){
+  var data=collect();
+  data['_exported_at']=new Date().toISOString();
+  var txt=JSON.stringify(data,null,2);
+  var box=document.getElementById('jsonBox');
+  document.getElementById('jsonOut').value=txt;
+  box.style.display='block';
+  // 同时打到控制台兜底
+  try{console.log('=== RESUME CANON ANSWERS ===');console.log(txt);}catch(e){}
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+};
+
+// 全选文本
+document.getElementById('selAllBtn').onclick=function(){
+  var ta=document.getElementById('jsonOut');ta.focus();ta.select();
+  try{document.execCommand('selectAll');}catch(e){}
+};
+
+// 导出失败兜底：点击导出按钮时也同步显示 JSON
+(function(){
+  var orig=document.getElementById('exportBtn').onclick;
+  document.getElementById('exportBtn').addEventListener('click',function(){
+    setTimeout(function(){
+      var data=collect();data['_exported_at']=new Date().toISOString();
+      document.getElementById('jsonOut').value=JSON.stringify(data,null,2);
+      document.getElementById('jsonBox').style.display='block';
+    },50);
+  },true);
+})();
+
+// 清空
+document.getElementById('clearBtn').onclick=function(){
+  if(confirm('确定清空所有填写内容？')){
+    localStorage.removeItem(KEY);
+    form.reset();
+    refreshOptSel();
+    document.getElementById('savedTag').textContent='已清空';
+  }
+};
+
+load();
+</script>
+</body>
+</html>
