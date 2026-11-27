@@ -21,7 +21,8 @@ jobs:
         run: |
           gunzip -kf test/test.py.gz
           gunzip -kf public/app.js.gz
-          echo "restored: $(wc -c < test/test.py) bytes test.py, $(wc -c < public/app.js) bytes app.js"
+          gunzip -kf public/style.css.gz
+          echo "restored: $(wc -c < test/test.py) bytes test.py, $(wc -c < public/app.js) bytes app.js, $(wc -c < public/style.css) bytes style.css"
 
       - name: Deploy to Production
         run: bash /home/xianzhe/actions-runner/_work/Resume-xianzhe.zhao/Resume-xianzhe.zhao/scripts/ci-deploy.sh prod
