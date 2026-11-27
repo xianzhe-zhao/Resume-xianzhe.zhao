@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>v8整合+四方向 决策树 — 方案分析产出物</title>
+<style>
+body{font-family:-apple-system,'Segoe UI','PingFang SC',sans-serif;max-width:900px;margin:40px auto;padding:0 24px;color:#2a2a2a;line-height:1.7}
+h1{font-size:20px;border-bottom:2px solid #888;padding-bottom:8px}
+table{border-collapse:collapse;width:100%;margin:14px 0}
+th,td{border:1px solid #ccc;padding:8px 10px;text-align:left;font-size:14px}
+th{background:#f4efe6}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px}
+.rec{background:#2a2a2a;color:#fff}
+.opt{background:#eee}
+.drop{background:#f7d8d8;text-decoration:line-through;color:#888}
+small{color:#888}
+</style>
+</head>
+<body>
+<h1>方案分析决策树 — v8 内容整合 + 四方向重建 + 年限口径</h1>
+<p>spec：<code>docs/specs/2026-11-27-v8-integrate-four-directions.md</code> ｜ 产出日期 2026-11-27</p>
+
+<h2>D1 多方向：方案 B（已确认）</h2>
+<table>
+<tr><th>选项</th><th>说明</th><th>决策</th></tr>
+<tr><td><span class="tag opt">A 复用</span></td><td>沿用旧 it/test/erp 数据</td><td>❌ 放弃：旧数据与 v8 事实不符，且方向定位已变</td></tr>
+<tr><td><span class="tag rec">B 扩展</span></td><td>新四方向 ai/fullstack/erp/pm，重建 versions</td><td>✅ 推荐 → 用户确认</td></tr>
+<tr><td><span class="tag drop">C 新建</span></td><td>独立多方向子系统</td><td>❌ 放弃：复用成本远低于新建，零架构变动更优</td></tr>
+</table>
+
+<h2>D2 年限：方案 C（已确认）</h2>
+<table>
+<tr><th>选项</th><th>说明</th><th>决策</th></tr>
+<tr><td><span class="tag opt">A 8 年</span></td><td>只算 2019.01 起</td><td>❌ 放弃：与 2017-2018 翻译经历割裂</td></tr>
+<tr><td><span class="tag opt">B 9 年</span></td><td>含翻译，但孤立「9 年」与 2019.01 打架</td><td>❌ 放弃：会引发追问</td></tr>
+<tr><td><span class="tag rec">C 9 年·8 年</span></td><td>「9 年工作经验 · 8 年技术研发」</td><td>✅ 推荐 → 用户确认</td></tr>
+</table>
+
+<h2>Spec 切分：拆两个 spec（默认，可推翻）</h2>
+<table>
+<tr><th>选项</th><th>说明</th><th>决策</th></tr>
+<tr><td><span class="tag rec">拆两 spec</span></td><td>本轮=内容+D1+D2+修test.py；D3 下一个 spec</td><td>✅ 推荐（契合 handoff 顺序）</td></tr>
+<tr><td><span class="tag opt">一个 spec</span></td><td>全做</td><td>可选，评审更重</td></tr>
+</table>
+
+<h2>最危险假设与验证方式</h2>
+<ol>
+<li><b>假设</b>：test.py 只是版本断言过时，无其它隐藏破损。<b>验证</b>：修版本断言后跑全套 test.py + interest_images + resume_content，全绿才算。</li>
+<li><b>假设</b>：app.js 渲染对所有 versionKey 都有兜底。<b>验证</b>：实读 app.js chips/nowTag 兜底逻辑 + test.py 四方向 200 断言。</li>
+<li><b>假设</b>：test_resume_content.py 的 ai 内容断言不会因 v8 全部失效。<b>验证</b>：编码时实读该文件逐条比对 v8，C8 条款约束。</li>
+</ol>
+<small>本文件为 spec 附件（方案分析产出物），不进 src/、不被构建、不进产物。</small>
+</body>
+</html>

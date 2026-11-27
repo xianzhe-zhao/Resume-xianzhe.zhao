@@ -26,6 +26,7 @@ const PORT = parseInt(process.env.PORT, 10) || 3000;
 const HOST = process.env.HOST || '127.0.0.1'; // 默认只监听本地，通过反向代理暴露
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const DATA_FILE = path.join(__dirname, 'data', 'resume.json');
+const INTERVIEW_FILE = path.join(__dirname, 'data', 'interview.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // 安全检查：必须设置强密码
@@ -35,7 +36,7 @@ if (!ADMIN_PASSWORD || ADMIN_PASSWORD === 'admin123') {
   process.exit(1);
 }
 
-const VERSIONS = ['ai'];
+const VERSIONS = ['ai', 'fullstack', 'erp', 'pm'];
 const DEFAULT_VERSION = 'ai';
 
 const sessions = {}; // 内存会话，重启失效
@@ -84,6 +85,42 @@ function validateResumeData(data) {
     return null;
   }
   return checkString(data, 'root');
+}
+
+// 面试题库数据校验：保存时验证结构与防 XSS
+function validateInterviewData(data) {
+  if (!data || typeof data !== 'object') return '数据必须是对象';
+  if (!data.categories || !Array.isArray(data.categories)) return '缺少 categories 数组';
+  for (let i = 0; i < data.categories.length; i++) {
+    const c = data.categories[i];
+    if (!c || typeof c !== 'object') return '分类 ' + i + ' 格式错误';
+    if (!c.id || typeof c.id !== 'string') return '分类 ' + i + ' 缺少 id';
+    if (!c.label || typeof c.label !== 'string') return '分类 ' + i + ' 缺少 label';
+    if (!c.items || !Array.isArray(c.items)) return '分类 ' + i + ' 缺少 items 数组';
+    for (let j = 0; j < c.items.length; j++) {
+      const it = c.items[j];
+      if (!it || typeof it !== 'object') return '题目 ' + i + '.' + j + ' 格式错误';
+      if (!it.q || typeof it.q !== 'string') return '题目 ' + i + '.' + j + ' 缺少 q';
+      if (!it.a || !Array.isArray(it.a)) return '题目 ' + i + '.' + j + ' 缺少 a 数组';
+      if (!it.dirs || !Array.isArray(it.dirs)) return '题目 ' + i + '.' + j + ' 缺少 dirs 数组';
+    }
+  }
+  // 复用 checkString 防 XSS
+  function checkIVString(obj, path) {
+    if (typeof obj === 'string') {
+      const dangerous = ['</script', '<script', '<iframe', '<object', '<embed', 'javascript:'];
+      for (const d of dangerous) {
+        if (obj.includes(d)) return '字段 ' + path + ' 包含不允许的内容（' + d + '）';
+      }
+    } else if (obj && typeof obj === 'object') {
+      for (const key of Object.keys(obj)) {
+        const result = checkIVString(obj[key], path + '.' + key);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+  return checkIVString(data, 'root');
 }
 
 // HTML 转义：防止 XSS
@@ -385,9 +422,40 @@ async function handleRequest(req, res) {
         console.warn('[SECURITY] 数据校验失败: ' + validationError);
         return sendJSON(res, 400, { ok: false, error: '数据校验失败: ' + validationError });
       }
+      // 保存前读取旧数据，用于面试题库同步提示（C8：只提示复核，不自动改写答案）
+      var oldData = null;
+      try { oldData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch (e2) { /* 首次保存无旧数据 */ }
       saveData(data);
       console.log('[SAVE] 数据已更新 by session');
-      return sendJSON(res, 200, { ok: true });
+      // 面试题库同步提示：扫描被改动的 base 字段，与 interview.json 各条 rel 比对
+      var needsReview = [];
+      try {
+        var iv = JSON.parse(fs.readFileSync(INTERVIEW_FILE, 'utf8'));
+        // 收集本次被改动的字段路径（简化：比较 base 顶层键 + experience/projects 结构哈希）
+        var changedPaths = [];
+        if (oldData && oldData.base && data.base) {
+          Object.keys(data.base).forEach(function (k) {
+            if (JSON.stringify(oldData.base[k]) !== JSON.stringify(data.base[k])) {
+              changedPaths.push('base.' + k);
+            }
+          });
+        }
+        // 与每条题目的 rel 比对（rel 形如 ["experience.0.projects.0"]）
+        if (iv.categories && Array.isArray(iv.categories)) {
+          iv.categories.forEach(function (c) {
+            (c.items || []).forEach(function (it) {
+              var rels = it.rel || [];
+              var hit = rels.some(function (r) {
+                return changedPaths.some(function (cp) {
+                  return cp.indexOf(r) >= 0 || r.indexOf(cp) >= 0;
+                });
+              });
+              if (hit) needsReview.push({ categoryId: c.id, itemId: it.id, q: it.q });
+            });
+          });
+        }
+      } catch (e2) { /* interview.json 不存在或读取失败，忽略 */ }
+      return sendJSON(res, 200, { ok: true, needsReview: needsReview });
     }
     catch (e) { return sendJSON(res, 400, { ok: false, error: '数据格式错误: ' + e.message }); }
   }
@@ -441,10 +509,42 @@ async function handleRequest(req, res) {
     } catch (e) { return sendJSON(res, 400, { ok: false, error: '上传失败: ' + e.message }); }
   }
 
+  // 面试题库 API
+  if (p === '/api/interview' && req.method === 'GET') {
+    // 公开 API：返回面试题库（纯题目，无敏感信息）
+    try {
+      const iv = JSON.parse(fs.readFileSync(INTERVIEW_FILE, 'utf8'));
+      return sendJSON(res, 200, iv);
+    } catch (e) {
+      // 文件不存在时返回空结构
+      return sendJSON(res, 200, { categories: [] });
+    }
+  }
+
+  if (p === '/api/interview/save' && req.method === 'POST') {
+    if (!getSession(req)) return sendJSON(res, 401, { ok: false, error: '未登录' });
+    let body;
+    try { body = await readBody(req); }
+    catch (e) { return sendJSON(res, 413, { ok: false, error: e.message }); }
+    try {
+      const data = JSON.parse(body);
+      const validationError = validateInterviewData(data);
+      if (validationError) {
+        console.warn('[SECURITY] 面试题库校验失败: ' + validationError);
+        return sendJSON(res, 400, { ok: false, error: '数据校验失败: ' + validationError });
+      }
+      const tmp = INTERVIEW_FILE + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+      fs.renameSync(tmp, INTERVIEW_FILE);
+      console.log('[INTERVIEW] 面试题库已更新 by session');
+      return sendJSON(res, 200, { ok: true });
+    } catch (e) { return sendJSON(res, 400, { ok: false, error: '数据格式错误: ' + e.message }); }
+  }
+
   // 页面路由
   if (p === '/') { res.writeHead(302, { Location: '/' + DEFAULT_VERSION }); return res.end(); }
   // 已下线版本重定向到默认版本（保留旧链接可用性）
-  if (['/it', '/test', '/erp'].includes(p)) { res.writeHead(302, { Location: '/' + DEFAULT_VERSION }); return res.end(); }
+  if (['/it', '/test'].includes(p)) { res.writeHead(302, { Location: '/' + DEFAULT_VERSION }); return res.end(); }
   if (VERSIONS.includes(p.slice(1))) return servePublicPage(res, p.slice(1));
   if (p === '/admin') {
     const html = fs.readFileSync(path.join(PUBLIC_DIR, 'admin.html'), 'utf8');

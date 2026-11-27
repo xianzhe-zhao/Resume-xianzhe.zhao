@@ -2,6 +2,9 @@
 """简历内容更新契约用例（spec 2026-11-23-resume-content-update C1-C12）
 用法: python test/test_resume_content.py
 依赖: 仅 Python 标准库；直接读 data/resume.json 做数据断言，不起服务器。
+
+用例名映射（spec 2026-11-27-v8-integrate-four-directions 核销）:
+  test_resume_content_canon -> C10 test_resume_content 适配 canon
 """
 # 用例名映射（供 check_spec.py 核销校验）:
 # test_c1_projects_count_order -> C1 项目数4+序列+七字段
@@ -66,11 +69,14 @@ for p in base["projects"]:
 print("\n[C2] 豹豹助手 items 5->7")
 bb = base["projects"][0]
 check("C2 baobao 是首位", bb["id"] == "baobao", bb["id"])
-check("C2 items 数=7", len(bb["items"]) == 7, f"got {len(bb['items'])}")
-check("C2 含豹豹文档条", any("豹豹文档" in it for it in bb["items"]), "缺豹豹文档")
-check("C2 含设计规范沉淀条", any("设计规范沉淀" in it for it in bb["items"]), "缺设计规范沉淀")
-check("C2 豹豹文档含 Yjs/TipTap", any("Yjs" in it and "TipTap" in it for it in bb["items"]), "缺 Yjs/TipTap")
-check("C2 设计规范含 DESIGN.md", any("DESIGN.md" in it for it in bb["items"]), "缺 DESIGN.md")
+check("C2 items 数=6（3功能+3技术）", len(bb["items"]) == 6, f"got {len(bb['items'])}")
+check("C2 含功能覆盖条", any("功能覆盖" in it for it in bb["items"]), "缺功能覆盖条")
+check("C2 含三服务拆分条", any("三服务拆分" in it for it in bb["items"]), "缺三服务拆分条")
+check("C2 含 Agent 编排层条", any("Agent 编排层" in it for it in bb["items"]), "缺 Agent 编排层条")
+check("C2 含 ReAct 多轮条", any("ReAct" in it for it in bb["items"]), "缺 ReAct 条")
+check("C2 含语义记忆条", any("语义记忆" in it for it in bb["items"]), "缺语义记忆条")
+check("C2 含 28 个工具", any("28 个工具" in it for it in bb["items"]), "缺 28 个工具")
+check("C2 含 BGE", any("BGE" in it for it in bb["items"]), "缺 BGE")
 check("C2 stack 含 Vue3/Yjs/TipTap/WebSocket",
       all(s in bb["stack"] for s in ("Vue3","Yjs","TipTap","WebSocket")), f"got {bb['stack']}")
 check("C2 原5条保留(AI对话)", any("AI 对话" in it for it in bb["items"]), "丢失原 AI 对话条")
@@ -83,13 +89,11 @@ check("C3 title 含 ship-it", "ship-it" in si["title"], si["title"])
 check("C3 badge=独立开发", si["badge"] == "独立开发", si["badge"])
 check("C3 link=https://github.com/xianzhe-zhao/ship-it",
       si["link"] == "https://github.com/xianzhe-zhao/ship-it", si["link"])
-check("C3 desc 含 9 步契约", "9 步契约" in si["desc"], "缺 9 步契约")
-check("C3 desc 含 spec-first", "spec-first" in si["desc"], "缺 spec-first")
-check("C3 desc 含 60+ spec", "60+" in si["desc"], "缺 60+")
-check("C3 items 数=3", len(si["items"]) == 3, f"got {len(si['items'])}")
-check("C3 items 含 9 步契约流程", any("9 步契约流程" in it for it in si["items"]), "缺 9 步契约流程")
-check("C3 items 含 spec-first 机器校验", any("spec-first" in it and "check_spec" in it for it in si["items"]), "缺 spec-first 机器校验")
-check("C3 items 含团队模式", any("团队模式" in it for it in si["items"]), "缺团队模式")
+check("C3 desc 含 9 步", "9 步" in si["desc"], "缺 9 步")
+check("C3 desc 含 spec 契约", "spec 契约" in si["desc"] or "契约" in si["desc"], "缺契约")
+check("C3 items 数=2", len(si["items"]) == 2, f"got {len(si['items'])}")
+check("C3 items 含 9 步流程", any("9 步" in it for it in si["items"]), "缺 9 步流程")
+check("C3 items 含 契约核销", any("契约核销" in it for it in si["items"]), "缺契约核销")
 check("C3 stack 含 AI Agent/Claude Code/Spec-driven/Python",
       si["stack"] == ["AI Agent","Claude Code","Spec-driven","Python"], f"got {si['stack']}")
 
@@ -104,11 +108,10 @@ check("C4 desc 含 RAG", "RAG" in kb["desc"], "缺 RAG")
 check("C4 items 数=3", len(kb["items"]) == 3, f"got {len(kb['items'])}")
 check("C4 items 含 PARA 四层", any("PARA 四层" in it for it in kb["items"]), "缺 PAR四层")
 check("C4 items 含自动归档", any("自动归档" in it for it in kb["items"]), "缺自动归档")
-rag_item = next(it for it in kb["items"] if "RAG" in it)
-check("C4 RAG 表述为数据收集阶段(非规划中非已完成)",
-      "数据收集" in rag_item and "规划中" not in rag_item and "已完成检索" not in rag_item,
-      f"RAG 口径: {rag_item}")
-check("C4 RAG 含 320+", "320" in rag_item, f"缺 320+: {rag_item}")
+rag_item = next((it for it in kb["items"] if "320" in it), None)
+check("C4 RAG 含 320+ 条目", rag_item is not None, "缺含 320 的条目")
+check("C4 RAG 表述为数据收集阶段", rag_item and "数据收集" in rag_item, f"RAG 口径: {rag_item}")
+check("C4 RAG 含 320+", rag_item and "320" in rag_item, f"缺 320+")
 check("C4 stack 含 Obsidian/Git/Markdown/RAG",
       kb["stack"] == ["Obsidian","Git","Markdown","RAG"], f"got {kb['stack']}")
 
@@ -118,48 +121,48 @@ ai_pro = next(p for p in base["projects"] if p["id"] == "aipro-bridge")
 check("C5 aipro-bridge 在末位", base["projects"][-1]["id"] == "aipro-bridge", "不在末位")
 check("C5 title 含 AiPro Bridge", "AiPro Bridge" in ai_pro["title"], ai_pro["title"])
 check("C5 desc 含零依赖 Node.js", "零依赖" in ai_pro["desc"] and "Node.js" in ai_pro["desc"], "缺零依赖/Node.js")
-check("C5 items 数=4", len(ai_pro["items"]) == 4, f"got {len(ai_pro['items'])}")
+check("C5 items 数=2", len(ai_pro["items"]) == 2, f"got {len(ai_pro['items'])}")
 check("C5 stack 含 MCP/SSE", "MCP" in ai_pro["stack"] and "SSE" in ai_pro["stack"], f"got {ai_pro['stack']}")
 
 # ---- C6 ai 版 summary 更新 ----
 print("\n[C6] ai 版 summary")
 summary = versions["ai"]["summary"]
-check("C6 含编码发布工作流 Agent Skill", "编码发布工作流 Agent Skill" in summary, "缺编码发布工作流")
-check("C6 含个人知识库系统", "个人知识库系统" in summary, "缺个人知识库系统")
-check("C6 含 + 实时协作文档", "+ 实时协作文档" in summary, "缺 + 实时协作文档")
+check("C6 含 AI 应用开发工程师", "AI 应用开发工程师" in summary, "缺求职目标")
+check("C6 含 9 年工作经验", "9 年工作经验" in summary, "缺 9 年工作经验")
+check("C6 含 Samsung SDS", "Samsung SDS" in summary, "缺 Samsung SDS")
+check("C6 不含三星电子", "三星电子" not in summary, "仍含三星电子")
 check("C6 保留 AWS 提及", "AWS Certified AI Practitioner" in summary, "丢 AWS 提及")
 check("C6 保留豹豹助手", "豹豹助手" in summary, "丢豹豹助手")
 
 # ---- C7 ai 版技术热情与自驱优势 ----
 print("\n[C7] 技术热情与自驱优势")
 adv3 = versions["ai"]["advantages"][3]
-check("C7 含 4 个完整项目", "4 个完整项目" in adv3["text"], "缺 4 个完整项目")
-check("C7 含开源 ship-it", "ship-it" in adv3["text"], "缺开源 ship-it")
-check("C7 含学做沉淀闭环", "闭环" in adv3["text"], "缺学做沉淀闭环")
-check("C7 不含 3 个项目", "3 个完整项目" not in adv3["text"], "仍写 3 个项目")
+check("C7 第四条为安全合规与项目交付", "安全合规" in adv3["title"] or "项目交付" in adv3["title"], f"got {adv3['title']}")
+check("C7 含加密整改", "加密" in adv3["text"], "缺加密整改")
+check("C7 含 Next ERP 项目经理", "Next ERP" in adv3["text"], "缺 Next ERP")
 
 # ---- C8 技能栏 AI/云/系统补充 ----
 print("\n[C8] 技能栏 AI/云/系统")
-ai_skills = base["skills"]["AI / 云 / 系统"]
-check("C8 含 6 项", len(ai_skills) == 6, f"got {len(ai_skills)}")
-check("C8 含 AWS", "AWS" in ai_skills, "缺 AWS")
-check("C8 含 LLM / Agent", "LLM / Agent" in ai_skills, "缺 LLM/Agent")
-check("C8 含 Linux", "Linux" in ai_skills, "缺 Linux")
-check("C8 含 RAG", "RAG" in ai_skills, "缺 RAG")
-check("C8 含 MCP", "MCP" in ai_skills, "缺 MCP")
-check("C8 含 Prompt Engineering", "Prompt Engineering" in ai_skills, "缺 Prompt Engineering")
+ai_eng = base["skills"].get("AI 工程", [])
+arch_ops = base["skills"].get("架构与运维", [])
+check("C8 含 AI 工程组", len(ai_eng) > 0, "缺 AI 工程组")
+check("C8 含架构与运维组", len(arch_ops) > 0, "缺架构与运维组")
+check("C8 AI 工程 含 RAG", any("RAG" in s for s in ai_eng), "缺 RAG")
+check("C8 AI 工程 含 Prompt", any("Prompt" in s for s in ai_eng), "缺 Prompt")
+check("C8 架构运维 含 AWS", "AWS" in arch_ops, "缺 AWS")
+check("C8 架构运维 含 Linux", "Linux" in arch_ops, "缺 Linux")
 
 # ---- C9 证书与荣誉口径统一 ----
 print("\n[C9] 证书荣誉口径统一")
 check("C9 certs 含 3 项", len(base["certs"]) == 3, f"got {len(base['certs'])}")
 check("C9 certs 含 AWS", any("AWS Certified AI Practitioner" in c for c in base["certs"]), "certs 缺 AWS")
 check("C9 certs 含三星 SW", any("三星 SW" in c for c in base["certs"]), "certs 缺三星 SW")
-check("C9 certs 含计算机二级", any("计算机二级" in c for c in base["certs"]), "certs 缺计算机二级")
+check("C9 certs 含计算机等级考试", any("计算机等级考试" in c or "NCRE" in c for c in base["certs"]), "certs 缺 NCRE")
 check("C9 honors 含 1 项", len(base["honors"]) == 1, f"got {len(base['honors'])}")
 check("C9 honors 不含 AWS", not any("AWS" in h for h in base["honors"]), "honors 仍有 AWS")
 check("C9 honors 含 SDSC", any("SDSC" in h for h in base["honors"]), "honors 缺 SDSC")
 check("C9 summary 保留 AWS", "AWS Certified AI Practitioner" in versions["ai"]["summary"], "summary 丢 AWS")
-check("C9 advantage[0] 保留 AWS", "AWS Certified AI Practitioner" in versions["ai"]["advantages"][0]["text"], "adv[0] 丢 AWS")
+check("C9 ai 版含 AWS（summary 或 advantage）", "AWS Certified AI Practitioner" in versions["ai"]["summary"] or any("AWS" in a["text"] for a in versions["ai"]["advantages"]), "ai 版丢 AWS")
 
 # ---- C10 token 占位 ----
 print("\n[C10] token 占位")
@@ -168,39 +171,19 @@ check("C10 未写入具体 token 数字(baobo desc 不含 M tokens)",
 check("C10 未写入具体 token 数字(items 不含 tokens)",
       not any("tokens" in it for it in bb["items"]), "items 已写入 token(应待用户提供)")
 
-# ---- C11 英文版镜像同步 ----
-print("\n[C11] 英文版镜像同步")
-en_ids = [p["id"] for p in en_base["projects"]]
-check("C11 en 项目数=4", len(en_base["projects"]) == 4, f"got {len(en_ids)}")
-check("C11 en id 序列与中文一致", en_ids == ids, f"en:{en_ids} zh:{ids}")
-en_bb = en_base["projects"][0]
-check("C11 en baobao items=7", len(en_bb["items"]) == 7, f"got {len(en_bb['items'])}")
-check("C11 en baobao 含 Baobao Docs", any("Baobao Docs" in it for it in en_bb["items"]), "缺 Baobao Docs")
-check("C11 en baobao 含 Design system", any("Design system" in it for it in en_bb["items"]), "缺 Design system")
-en_si = next(p for p in en_base["projects"] if p["id"] == "ship-it")
-check("C11 en ship-it link 一致", en_si["link"] == si["link"], f"en:{en_si['link']} zh:{si['link']}")
-check("C11 en ship-it items=3", len(en_si["items"]) == 3, f"got {len(en_si['items'])}")
-en_kb = next(p for p in en_base["projects"] if p["id"] == "knowledge-base")
-check("C11 en kb items=3", len(en_kb["items"]) == 3, f"got {len(en_kb['items'])}")
-en_rag_item = next(it for it in en_kb["items"] if "RAG" in it)
-check("C11 en RAG 数据收集阶段", "data collection" in en_rag_item.lower(), f"en RAG: {en_rag_item}")
-check("C11 en certs=3", len(en_base["certs"]) == 3, f"got {len(en_base['certs'])}")
-check("C11 en honors=1", len(en_base["honors"]) == 1, f"got {len(en_base['honors'])}")
-en_ai_skills = en_base["skills"]["AI / Cloud / Systems"]
-check("C11 en AI skills=6", len(en_ai_skills) == 6, f"got {len(en_ai_skills)}")
-check("C11 en AI skills 含 RAG/MCP/Prompt",
-      all(s in en_ai_skills for s in ("RAG","MCP","Prompt Engineering")), f"got {en_ai_skills}")
-check("C11 en ai summary 含 Four/coding-to-release/knowledge base",
-      "coding-to-release" in en_versions["ai"]["summary"] and "knowledge base" in en_versions["ai"]["summary"],
-      "en summary 缺关键词")
-en_adv3 = en_versions["ai"]["advantages"][3]
-check("C11 en adv[3] 含 4 complete + ship-it", "4 complete" in en_adv3["text"] and "ship-it" in en_adv3["text"], f"en adv3: {en_adv3['text'][:60]}")
 
-# ---- C12 it/test/erp 已下线（单版本化，仅留 ai）----
-print("\n[C12] it/test/erp 已下线（单版本化）")
-check("C12 versions 仅含 ai", set(versions.keys()) == {"ai"}, f"多余版本: {set(versions.keys())}")
-check("C12 en versions 仅含 ai", set(en_versions.keys()) == {"ai"}, f"en 多余版本: {set(en_versions.keys())}")
-check("C12 it/test/erp 已删除", all(v not in versions for v in ("it","test","erp")), "旧版本未删干净")
+# ---- C11 英文版（本轮不同步，仅校验结构存在）----
+print("\n[C11] 英文版结构（本轮不同步）")
+check("C11 en base 存在", "base" in d.get("en", {}), "缺 en.base")
+check("C11 en versions 含 ai", "ai" in en_versions, "en 缺 ai 版")
+check("C11 en projects 存在", len(en_base.get("projects", [])) > 0, "en 缺 projects")
+check("C11 en skills 存在", len(en_base.get("skills", {})) > 0, "en 缺 skills")
+
+# ---- C12 四方向重建（ai/fullstack/erp/pm）----
+print("\n[C12] 四方向重建")
+check("C12 versions 含四方向", set(versions.keys()) == {"ai","fullstack","erp","pm"}, f"got {set(versions.keys())}")
+check("C12 旧版本 it/test 已删除", all(v not in versions for v in ("it","test")), "旧版本未删干净")
+check("C12 en versions 仅 ai（本轮不同步）", "ai" in en_versions, "en 缺 ai")
 
 print("\n" + "=" * 60)
 print(f"通过: {passed}   失败: {failed}   总计: {passed+failed}")

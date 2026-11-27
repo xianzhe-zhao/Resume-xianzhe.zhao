@@ -288,3 +288,26 @@ button { font: inherit; cursor: pointer; }
   margin-top: 6px;
 }
 .avatar-remove { margin-top: 6px; }
+
+/* ============ 技能/经历/教育/面试题库编辑区（v2.0.0 新增）============ */
+.skills-editor, .experience-editor, #educationEditor { display:flex; flex-direction:column; gap:14px; margin-bottom:12px; }
+.skill-group-edit, .exp-project-edit, .edu-edit, .iv-category, .iv-item-edit {
+  border:1px solid var(--border); border-radius:10px; padding:14px; background:#fcfaf6;
+}
+.skill-group-edit .skill-items, .exp-project-edit textarea, .iv-item-edit textarea { width:100%; font:inherit; font-size:13.5px; resize:vertical; }
+.exp-project-edit .form-grid { margin-bottom:8px; }
+.del-skill-group, .del-exp-project, .del-edu, .del-iv-item, .del-iv-cat {
+  margin-top:8px; color:#b03a2e; border-color:#e8c8c4;
+}
+.del-skill-group:hover, .del-exp-project:hover, .del-edu:hover, .del-iv-item:hover, .del-iv-cat:hover { background:#fce8e6; }
+
+/* 面试题库 */
+.interview-filter { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.iv-chip { padding:5px 14px; border:1px solid var(--border); border-radius:999px; background:#fff; font-size:13px; color:var(--muted); cursor:pointer; user-select:none; }
+.iv-chip.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+.iv-category { margin-bottom:16px; }
+.iv-items { display:flex; flex-direction:column; gap:12px; margin:10px 0; }
+.iv-item-edit { border:1px solid var(--border); border-radius:8px; padding:12px; background:#fff; }
+.add-iv-item, #addIvCat, #addSkillGroup, #addExpProject, #addEdu { margin-top:8px; }
+select#ver_featuredProject { padding:9px 12px; border:1px solid var(--border); border-radius:9px; font:inherit; font-size:14px; background:#fff; }
+
