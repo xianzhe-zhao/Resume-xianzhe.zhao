@@ -1,14 +1,19 @@
-// 打印/PDF 流程 CDP 实测（C13/C14/C15）—— 零依赖（Node 22+ 内置 WebSocket + 本机 Chrome/Edge）
+// 打印/PDF 流程 CDP 实测（修订 4：WYSIWYG 预览 + 不分页长页导出）—— 零依赖（Node 22+ 内置 WebSocket + 本机 Chrome/Edge）
 // 用法: node test/cdp-print.mjs
 // 自包含：自启 node server.js（PORT=3998，只读真实数据）→ headless Chrome → 断言 → 自停
 //
-// 覆盖：
-//   P1  bug 前置条件复现：未滚动时下方元素残留内联 opacity:0（GSAP 入场动画未触发）
-//   C13 打印按钮 → 版式对话框（居中坐标断言 + 双选项并排 + 「另存为 PDF」提示 + Esc 关闭）
-//   C14 打印媒体下动画残留被覆盖（opacity=1 / visible / transform=none，真实浏览器 computed style）
-//   C15 竖版/横版：html 类 + 动态 @page 注入 + window.print 调用 + printToPDF 纸张方向（A4 595×842 / 842×595pt）+ 页数 ≥2
-//   布局：竖版单列（stats 2 列 / hero 1 列）、横版双列（stats 4 列 / hero 2 列）
-//   无未捕获 JS 异常
+// 覆盖（契约 docs/specs/2026-11-25-print-fix.md 修订 4，C17–C26）：
+//   P1   bug 前置条件复现：未滚动时下方元素残留内联 opacity:0（GSAP 入场动画未触发）
+//   C13  打印按钮 → 版式对话框（居中坐标 + 双选项并排 + 「另存为 PDF」提示 + Esc 关闭）
+//   C17* 双打印按钮统一绑定（.js-print 数量 = 2）
+//   C18* window.__coverSvg 模块加载后即可用 + 封面图 404 → SVG 占位
+//   C19* WYSIWYG 预览：纸张 210/297mm + 白边 26/16mm + 工具条 + 无页卡/分页线 + 选方向不直接打印
+//   C20* 不分页长页导出：printToPDF 恰好 1 页（竖 210×3293mm / 横 297×2512mm，±50mm）
+//   C21* 总高测量：@page 稳定轮询定稿 210/297mm × H（H≈3293/2512mm）
+//   C23* 直接 Ctrl+P 一致性：beforeprint 注入竖版长页 → 1 页，afterprint 清理
+//   C24* 预览关闭与状态清理：类/工具条/@page 清除 + 幂等
+//   C14/C15 打印媒体回归：动画残留覆盖 + 单/双列布局 + 封面定高
+//   全程无未捕获 JS 异常
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -20,6 +25,7 @@ const PORT = 3998;
 const BASE = `http://127.0.0.1:${PORT}`;
 const NODE = process.env.NODE_EXE || 'node';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MM_PT = 2.83465; // 1mm = 2.83465pt
 
 let passed = 0, failed = 0;
 const results = [];
@@ -69,7 +75,7 @@ async function launchChrome() {
     const t = setTimeout(() => reject(new Error('Chrome 20s 未启动')), 20000);
     chromeProc.stderr.on('data', (d) => {
       buf += d.toString();
-      const m = buf.match(/DevTools listening on (ws:\/\/[^\s]+)/);
+      const m = buf.match(/DevTools listening on (ws:\/\/[^^\s]+)/);
       if (m) { clearTimeout(t); resolve(m[1]); }
     });
     chromeProc.on('exit', (code) => { clearTimeout(t); reject(new Error('Chrome 提前退出 code=' + code + '\n' + buf.slice(-400))); });
@@ -151,6 +157,59 @@ async function waitServer() {
   return false;
 }
 
+// ---- 修订 4 辅助：PDF 信息 / 预览状态 / 长页定稿等待 ----
+function pdfInfo(buf) {
+  const txt = buf.toString('latin1');
+  const pages = (txt.match(/\/Type\s*\/Page[^s]/g) || []).length;
+  const mb = txt.match(/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
+  return { size: buf.length, pages, wPt: mb ? parseFloat(mb[1]) : null, hPt: mb ? parseFloat(mb[2]) : null };
+}
+
+async function previewState(page) {
+  return page.eval(`(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const bar = document.getElementById('previewBar');
+    const st = document.getElementById('print-orient-style');
+    const dlg = document.getElementById('printDialog');
+    const bcs = getComputedStyle(body);
+    const br = bar ? bar.getBoundingClientRect() : null;
+    return {
+      htmlCls: html.className,
+      bodyOn: body.classList.contains('preview-on'),
+      bar: !!bar,
+      barTop: br ? br.top : null,
+      barH: br ? br.height : null,
+      style: st ? st.textContent : null,
+      dialogHidden: dlg ? dlg.hidden : null,
+      bodyW: body.getBoundingClientRect().width,
+      padT: bcs.paddingTop,
+      padL: bcs.paddingLeft,
+      pvExport: !!document.getElementById('pvExport'),
+      pvClose: !!document.getElementById('pvClose'),
+      pageCards: document.querySelectorAll('.page-card, #pvPages').length,
+      htmlBg: getComputedStyle(html).backgroundColor,
+      navbarDisplay: getComputedStyle(document.querySelector('.navbar')).display,
+    };
+  })()`);
+}
+
+function isClean(st) {
+  return !!st && st.htmlCls === '' && !st.bodyOn && !st.bar && (st.style === '' || st.style == null);
+}
+
+async function waitForPageSettle(page, orient, timeoutMs = 12000) {
+  const wMm = (orient === 'portrait') ? 210 : 297;
+  const re = new RegExp('@page \\{ size: ' + wMm + 'mm (\\d+)mm; margin: 0; \\}');
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const style = await page.eval(`(() => { const st = document.getElementById('print-orient-style'); return st ? st.textContent : ''; })()`);
+    const m = (style || '').match(re);
+    if (m) return { settled: true, hMm: parseInt(m[1], 10) };
+    await sleep(200);
+  }
+  return { settled: false, hMm: null };
+}
 async function main() {
   // ---- 自启测试服务器（3998，只读） ----
   let serverOut = '';
@@ -167,7 +226,7 @@ async function main() {
     if (!(await waitServer())) throw new Error('测试服务器启动失败:\n' + serverOut.slice(-500));
 
     console.log('='.repeat(56));
-    console.log('打印/PDF 流程 CDP 实测（端口 3998 · headless Chrome）');
+    console.log('打印/PDF 流程 CDP 实测（修订 4 · 端口 3998 · headless Chrome）');
     console.log('='.repeat(56));
 
     const wsUrl = await launchChrome();
@@ -181,6 +240,29 @@ async function main() {
       return { opacity: el.style.opacity, visibility: el.style.visibility, transform: el.style.transform };
     })()`);
     check('P1 C6 修复：未滚动时下方元素无内联 opacity:0', pre.opacity !== '0' && pre.visibility !== 'hidden', JSON.stringify(pre));
+
+    // ---- C17* 双打印按钮统一绑定（2026-11-25 spec）----
+    const jsPrintCount = await page.eval(`document.querySelectorAll('.js-print').length`);
+    check('C17* .js-print 按钮数量 = 2（导航 + hero）', jsPrintCount === 2, 'count=' + jsPrintCount);
+    const heroDlg = await page.eval(`(() => {
+      const b = document.querySelector('.btn.ghost.js-print');
+      if (!b) return { found: false };
+      b.click();
+      return { found: true, hidden: document.getElementById('printDialog').hidden };
+    })()`);
+    check('C17* hero 按钮点击打开版式对话框', heroDlg.found === true && heroDlg.hidden === false, JSON.stringify(heroDlg));
+    if (heroDlg.found && heroDlg.hidden === false) {
+      await page.eval(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
+      await sleep(200);
+    }
+
+    // ---- C18* window.__coverSvg 模块加载后即可用（2026-11-25 spec）----
+    const svgFn = await page.eval(`(() => {
+      if (typeof window.__coverSvg !== 'function') return { fn: false };
+      const s = window.__coverSvg('rms');
+      return { fn: true, isSvg: typeof s === 'string' && s.includes('<svg') };
+    })()`);
+    check('C18* window.__coverSvg 模块加载后即可用（返回 SVG）', svgFn.fn === true && svgFn.isSvg === true, JSON.stringify(svgFn));
 
     // ---- C13 打印按钮 → 对话框 ----
     await page.eval(`document.getElementById('printBtn').click()`);
@@ -199,25 +281,34 @@ async function main() {
     check('C13 选项顺序 portrait/landscape', dlg.opts[0].orient === 'portrait' && dlg.opts[1].orient === 'landscape', JSON.stringify(dlg.opts));
     check('C13 提示含「另存为 PDF」指引', dlg.hint.includes('另存为 PDF'), dlg.hint);
     check('C13 标题为「选择打印版式」', dlg.title === '选择打印版式', dlg.title);
-
-    // ---- C13 Esc 关闭，不触发打印 ----
     await page.eval(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
     await sleep(200);
     check('C13 Esc 关闭对话框', (await page.eval(`document.getElementById('printDialog').hidden`)) === true);
 
-    // ---- C13/C15 选竖版 → 类 + @page + window.print ----
-    await page.eval(`window.__printCalls = []; window.print = function () { window.__printCalls.push({ cls: document.documentElement.className, page: (document.getElementById('print-orient-style') || {}).textContent || '' }); };`);
+    // ============ 竖版流程（C19*/C20*/C21*/C24*）============
+    await page.eval(`window.__printCalls = []; window.print = function () { window.__printCalls.push(document.documentElement.className); };`);
     await page.eval(`document.getElementById('printBtn').click()`);
     await sleep(200);
     await page.eval(`document.querySelector('.pd-opt[data-orient="portrait"]').click()`);
-    await sleep(250);
+    await sleep(300);
     const pc1 = await page.eval(`window.__printCalls`);
-    check('C13 选竖版触发 window.print 一次', pc1.length === 1, JSON.stringify(pc1));
-    check('C15 html.print-portrait 类注入', pc1[0] && pc1[0].cls === 'print-portrait', JSON.stringify(pc1[0]));
-    check('C15 动态 @page A4 portrait 注入', pc1[0] && pc1[0].page.includes('A4 portrait'), JSON.stringify(pc1[0]));
-    check('C13 选择后对话框关闭', (await page.eval(`document.getElementById('printDialog').hidden`)) === true);
+    check('C19* 选竖版不直接触发 window.print（WYSIWYG 延迟打印）', pc1.length === 0, JSON.stringify(pc1));
+    const pv1 = await previewState(page);
+    check('C19* html.print-portrait preview-mode pv-long 类注入', pv1.htmlCls === 'print-portrait preview-mode pv-long', pv1.htmlCls);
+    check('C19* body.preview-on 类注入', pv1.bodyOn === true, String(pv1.bodyOn));
+    check('C19* #previewBar 工具条可见', pv1.bar === true, String(pv1.bar));
+    check('C19* 纸张宽 210mm（≈793.7px）', Math.abs(pv1.bodyW - 793.7) <= 2, 'bodyW=' + pv1.bodyW);
+    check('C19* 白边 上 26mm / 左 16mm（≈98.4px / ≈60.5px）', Math.abs(parseFloat(pv1.padT) - 98.425) <= 1 && Math.abs(parseFloat(pv1.padL) - 60.472) <= 1, 'padT=' + pv1.padT + ' padL=' + pv1.padL);
+    check('C19* 工具条固定顶部（top=0，高度>0）', pv1.barTop === 0 && pv1.barH > 0, 'top=' + pv1.barTop + ' h=' + pv1.barH);
+    check('C19* 工具条含「导出 PDF」+「关闭预览」按钮', pv1.pvExport === true && pv1.pvClose === true, 'export=' + pv1.pvExport + ' close=' + pv1.pvClose);
+    check('C19* 无页卡（#pvPages/.page-card 不存在）', pv1.pageCards === 0, 'cards=' + pv1.pageCards);
+    check('C19* 屏幕背景纸张色（rgb(233,228,218)）', pv1.htmlBg === 'rgb(233, 228, 218)', pv1.htmlBg);
+    check('C19* 预览期导航栏隐藏', pv1.navbarDisplay === 'none', pv1.navbarDisplay);
+    const settle1 = await waitForPageSettle(page, 'portrait');
+    check('C21* @page 稳定轮询定稿 210mm × H', settle1.settled === true, JSON.stringify(settle1));
+    check('C21* 竖版总高 H ≈ 3293mm（±50mm）', settle1.settled && Math.abs(settle1.hMm - 3293) <= 50, 'hMm=' + settle1.hMm);
 
-    // ---- C14/C15 模拟 print 媒体：动画残留覆盖 + 竖版单列布局（v1.3.0：8 区结构）----
+    // ---- C14/C15/C19*/C20* 打印媒体回归（竖版）----
     await page.send('Emulation.setEmulatedMedia', { media: 'print' });
     await sleep(300);
     const pcss = await page.eval(`(() => {
@@ -236,29 +327,46 @@ async function main() {
     check('C15 竖版：hero 单列', pcss.heroCols.trim().split(/\s+/).length === 1, pcss.heroCols);
     check('C15 print：导航栏隐藏', pcss.navbarDisplay === 'none', pcss.navbarDisplay);
     check('C15 竖版：body 白底 + #app 奶油底内缩', pcss.bodyBg === 'rgb(255, 255, 255)' && pcss.appBg === 'rgb(250, 245, 236)', 'body=' + pcss.bodyBg + ' app=' + pcss.appBg);
+    const coverHp = await page.eval(`(() => [...document.querySelectorAll('.cover-img')].map(i => Math.round(i.getBoundingClientRect().height)))()`);
+    check('C19* 竖版：11 张封面图定高 240px', coverHp.length === 11 && coverHp.every(h => Math.abs(h - 240) <= 1), JSON.stringify(coverHp));
+    const pbreaks = await page.eval(`(() => ({
+      footer: getComputedStyle(document.querySelector('.footer')).breakInside,
+      secHeadOk: [...document.querySelectorAll('.sec-head-wrap')].every(w => getComputedStyle(w).breakAfter === 'avoid'),
+      appMargin: (() => { const am = getComputedStyle(document.getElementById('app')); return { t: am.marginTop, r: am.marginRight, b: am.marginBottom, l: am.marginLeft }; })()
+    }))()`);
+    check('C19* .footer break-inside: avoid（不被拆分）', pbreaks.footer === 'avoid', pbreaks.footer);
+    check('C19* .sec-head-wrap break-after: avoid（无滞留标题）', pbreaks.secHeadOk === true, '');
+    const amOk = Math.abs(parseFloat(pbreaks.appMargin.t)) < 0.5 && Math.abs(parseFloat(pbreaks.appMargin.b)) < 0.5
+      && Math.abs(parseFloat(pbreaks.appMargin.r) - 37.7953) < 0.5 && Math.abs(parseFloat(pbreaks.appMargin.l) - 37.7953) < 0.5;
+    check('C20* #app 打印内缩 margin: 0 10mm（上下 0、左右 ≈37.8px）', amOk, JSON.stringify(pbreaks.appMargin));
     await page.send('Emulation.setEmulatedMedia', { media: '' });
 
-    // ---- C15 printToPDF 竖版（preferCSSPageSize → 用 CSS @page） ----
+    // ---- C20* 导出按钮 + printToPDF 竖版长页 ----
+    await page.eval(`window.__printCalls = [];`);
+    await page.eval(`(() => { const b = document.getElementById('pvExport'); if (b) { b.click(); return 'clicked'; } return 'no-btn'; })()`);
+    await sleep(200);
+    const pc1b = await page.eval(`window.__printCalls`);
+    check('C20* pvExport 点击触发 window.print 一次', pc1b.length === 1, JSON.stringify(pc1b));
     const pdfP = await page.send('Page.printToPDF', { preferCSSPageSize: true, printBackground: true, displayHeaderFooter: false });
-    const bufP = Buffer.from(pdfP.data, 'base64');
-    const txtP = bufP.toString('latin1');
-    const pagesP = (txtP.match(/\/Type\s*\/Page[^s]/g) || []).length;
-    check('C15 竖版 PDF 生成（>10KB）', bufP.length > 10000, 'size=' + bufP.length);
-    check('C15 竖版 PDF 页数 ≥2（多页）', pagesP >= 2, 'pages=' + pagesP);
-    const mbP = txtP.match(/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
-    check('C15 竖版 PDF 纸张 A4 portrait（595×842pt）', mbP && Math.abs(parseFloat(mbP[1]) - 595) < 3 && Math.abs(parseFloat(mbP[2]) - 842) < 3, mbP ? mbP[1] + 'x' + mbP[2] : 'no MediaBox');
-
-    // ---- C15 横版流程 ----
+    const infoP = pdfInfo(Buffer.from(pdfP.data, 'base64'));
+    check('C20* 竖版 PDF 恰好 1 页', infoP.pages === 1, 'pages=' + infoP.pages);
+    check('C20* 竖版 PDF 纸宽 210mm（≈595.28pt，±3pt）', infoP.wPt !== null && Math.abs(infoP.wPt - 595.28) <= 3, 'wPt=' + infoP.wPt);
+    check('C20* 竖版 PDF 纸高 ≈3293mm（≈9334.6pt，±141.7pt）', infoP.hPt !== null && Math.abs(infoP.hPt - 3293 * MM_PT) <= 141.7, 'hPt=' + infoP.hPt);
+    const clean1 = await previewState(page);
+    check('C24* 导出后状态清理（类/工具条/@page 清除）', isClean(clean1), JSON.stringify(clean1));
+    // ============ 横版流程（C19*/C20*/C21*/C24*）============
     await page.goto(BASE + '/ai');
-    await page.eval(`window.__printCalls = []; window.print = function () { window.__printCalls.push({ cls: document.documentElement.className, page: (document.getElementById('print-orient-style') || {}).textContent || '' }); };`);
+    await page.eval(`window.__printCalls = []; window.print = function () { window.__printCalls.push(document.documentElement.className); };`);
     await page.eval(`document.getElementById('printBtn').click()`);
     await sleep(200);
     await page.eval(`document.querySelector('.pd-opt[data-orient="landscape"]').click()`);
-    await sleep(250);
-    const pc2 = await page.eval(`window.__printCalls`);
-    check('C15 选横版触发 window.print 一次', pc2.length === 1, JSON.stringify(pc2));
-    check('C15 html.print-landscape 类注入', pc2[0] && pc2[0].cls === 'print-landscape', JSON.stringify(pc2[0]));
-    check('C15 动态 @page A4 landscape 注入', pc2[0] && pc2[0].page.includes('A4 landscape'), JSON.stringify(pc2[0]));
+    await sleep(300);
+    const pv2 = await previewState(page);
+    check('C19* html.print-landscape preview-mode pv-long 类注入', pv2.htmlCls === 'print-landscape preview-mode pv-long', pv2.htmlCls);
+    check('C19* 横版纸张宽 297mm（≈1122.5px）', Math.abs(pv2.bodyW - 1122.5) <= 2, 'bodyW=' + pv2.bodyW);
+    const settle2 = await waitForPageSettle(page, 'landscape');
+    check('C21* @page 稳定轮询定稿 297mm × H', settle2.settled === true, JSON.stringify(settle2));
+    check('C21* 横版总高 H ≈ 2512mm（±50mm）', settle2.settled && Math.abs(settle2.hMm - 2512) <= 50, 'hMm=' + settle2.hMm);
 
     await page.send('Emulation.setEmulatedMedia', { media: 'print' });
     await sleep(300);
@@ -271,22 +379,74 @@ async function main() {
     check('C15 横版：技能卡片 3 列', pcss2.skillCardsCols.trim().split(/\s+/).length === 3, pcss2.skillCardsCols);
     check('C15 横版：hero 双列', pcss2.heroCols.trim().split(/\s+/).length === 2, pcss2.heroCols);
     check('C15 横版：body 白底 + #app 奶油底内缩', pcss2.bodyBg === 'rgb(255, 255, 255)' && pcss2.appBg === 'rgb(250, 245, 236)', 'body=' + pcss2.bodyBg + ' app=' + pcss2.appBg);
+    const coverHl = await page.eval(`(() => [...document.querySelectorAll('.cover-img')].map(i => Math.round(i.getBoundingClientRect().height)))()`);
+    check('C19* 横版：11 张封面图高度 ≤ 460px（无截断）', coverHl.length === 11 && coverHl.every(h => h <= 460), JSON.stringify(coverHl));
     await page.send('Emulation.setEmulatedMedia', { media: '' });
 
     const pdfL = await page.send('Page.printToPDF', { preferCSSPageSize: true, printBackground: true, displayHeaderFooter: false });
-    const bufL = Buffer.from(pdfL.data, 'base64');
-    const txtL = bufL.toString('latin1');
-    const pagesL = (txtL.match(/\/Type\s*\/Page[^s]/g) || []).length;
-    check('C15 横版 PDF 页数 ≥2（多页）', pagesL >= 2, 'pages=' + pagesL);
-    const mbL = txtL.match(/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
-    check('C15 横版 PDF 纸张 A4 landscape（842×595pt）', mbL && Math.abs(parseFloat(mbL[1]) - 842) < 3 && Math.abs(parseFloat(mbL[2]) - 595) < 3, mbL ? mbL[1] + 'x' + mbL[2] : 'no MediaBox');
+    const infoL = pdfInfo(Buffer.from(pdfL.data, 'base64'));
+    check('C20* 横版 PDF 恰好 1 页', infoL.pages === 1, 'pages=' + infoL.pages);
+    check('C20* 横版 PDF 纸宽 297mm（≈841.89pt，±3pt）', infoL.wPt !== null && Math.abs(infoL.wPt - 841.89) <= 3, 'wPt=' + infoL.wPt);
+    check('C20* 横版 PDF 纸高 ≈2512mm（≈7120.6pt，±141.7pt）', infoL.hPt !== null && Math.abs(infoL.hPt - 2512 * MM_PT) <= 141.7, 'hPt=' + infoL.hPt);
+    const clean2 = await previewState(page);
+    check('C24* 导出后状态清理（类/工具条/@page 清除）', isClean(clean2), JSON.stringify(clean2));
+
+    // ============ C23* 直接 Ctrl+P（未经预览，beforeprint 注入竖版长页）============
+    await page.goto(BASE + '/ai');
+    const pdfC = await page.send('Page.printToPDF', { preferCSSPageSize: true, printBackground: true, displayHeaderFooter: false });
+    const infoC = pdfInfo(Buffer.from(pdfC.data, 'base64'));
+    check('C23* 直接 Ctrl+P 输出 1 页长页（beforeprint 注入）', infoC.pages === 1, 'pages=' + infoC.pages);
+    check('C23* 竖版长页纸张（≈595.28 × ≈9334.6pt，±容差）', infoC.wPt !== null && infoC.hPt !== null && Math.abs(infoC.wPt - 595.28) <= 3 && Math.abs(infoC.hPt - 3293 * MM_PT) <= 141.7, 'wPt=' + infoC.wPt + ' hPt=' + infoC.hPt);
+    const cleanC = await previewState(page);
+    check('C23* afterprint 清理（类/工具条/@page 清除）', isClean(cleanC), JSON.stringify(cleanC));
+
+    // ============ C24* 关闭预览幂等（开→关→开→关）============
+    await page.eval(`document.getElementById('printBtn').click()`);
+    await sleep(200);
+    await page.eval(`document.querySelector('.pd-opt[data-orient="portrait"]').click()`);
+    await sleep(300);
+    const pv3 = await previewState(page);
+    check('C24* 打开预览 → 工具条可见', pv3.bar === true, String(pv3.bar));
+    await waitForPageSettle(page, 'portrait');
+    await page.eval(`(() => { const b = document.getElementById('pvClose'); if (b) { b.click(); return 'clicked'; } return 'no-bar'; })()`);
+    await sleep(200);
+    const clean3 = await previewState(page);
+    check('C24* 关闭预览 → 状态清理', isClean(clean3), JSON.stringify(clean3));
+    await page.eval(`document.getElementById('printBtn').click()`);
+    await sleep(200);
+    await page.eval(`document.querySelector('.pd-opt[data-orient="portrait"]').click()`);
+    await sleep(300);
+    const pv4 = await previewState(page);
+    check('C24* 重开预览 → 工具条可见', pv4.bar === true, String(pv4.bar));
+    await waitForPageSettle(page, 'portrait');
+    await page.eval(`(() => { const b = document.getElementById('pvClose'); if (b) { b.click(); return 'clicked'; } return 'no-bar'; })()`);
+    await sleep(200);
+    const clean4 = await previewState(page);
+    check('C24* 再关闭预览 → 状态清理（幂等）', isClean(clean4), JSON.stringify(clean4));
+
+    // ---- C18* 封面图 404 → onerror 注入 SVG 占位（2026-11-25 spec：不出现空白封面）----
+    const c404 = await page.eval(`new Promise(res => {
+      const img = document.querySelector('.cover-img');
+      if (!img) { res({ err: 'no cover-img' }); return; }
+      const parent = img.parentElement;
+      img.src = '/img/__404_test__.jpg';
+      const t0 = Date.now();
+      const iv = setInterval(() => {
+        const imgGone = !parent.contains(img);
+        if (imgGone || Date.now() - t0 > 8000) {
+          clearInterval(iv);
+          res({ imgGone, svgInjected: !!parent.querySelector('svg'), snippet: parent.innerHTML.slice(0, 120) });
+        }
+      }, 200);
+    })`, 12000);
+    check('C18* 封面图 404 → onerror 注入 __coverSvg SVG 占位（无空白封面）', c404.imgGone === true && c404.svgInjected === true, JSON.stringify(c404));
 
     // ---- 无未捕获 JS 异常 ----
     check('全程无未捕获 JS 异常', page.jsErrors.length === 0, page.jsErrors.join(' | '));
 
     console.log(results.join('\n'));
     console.log('='.repeat(56));
-    console.log(`CDP 打印实测：通过 ${passed}   失败 ${failed}   总计 ${passed + failed}`);
+    console.log(`CDP 打印实测（修订 4）：通过 ${passed}   失败 ${failed}   总计 ${passed + failed}`);
     console.log('='.repeat(56));
   } finally {
     try { if (cdp) await cdp.send('Browser.close', {}, undefined, 3000); } catch {}
