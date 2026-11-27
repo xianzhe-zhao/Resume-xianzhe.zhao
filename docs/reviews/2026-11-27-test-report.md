@@ -2,36 +2,36 @@
 
 ## 运行信息
 
-- run_started_at: 2026-11-27T04:03:07.134Z
-- run_finished_at: 2026-11-27T04:03:51.621Z
-- 测试环境：worktree rev-4 代码（端口 3999 test.py + 端口 3998 cdp-print.mjs）
-- 备注：app.js 行尾归一化（\r\r\n → \r\n）后重跑，396/396 全绿
+- run_started_at: 2026-11-27T06:33:04.355Z
+- run_finished_at: 2026-11-27T06:33:10.873Z
+- 测试环境：worktree rev-4 代码（端口 3999 test.py）
+- 备注：C10b C6 补充 style.css.gz 后重跑，335/335 全绿
 
 ## 测试证据
 
 ### test/test.py
 
 - path: test/test.py
-- pre_sha256: 70e8fab8d158ed1e91f4eae04b3b233137f9a137bf8cb58ffaabbf0795f70890
-- post_sha256: 70e8fab8d158ed1e91f4eae04b3b233137f9a137bf8cb58ffaabbf0795f70890
-- run_started_at: 2026-11-27T04:03:07.134Z
-- run_finished_at: 2026-11-27T04:03:51.621Z
+- pre_sha256: 9a37e7c125ea438b149ceed5edd5594e2205c6d952712659048ba298cdecc288
+- post_sha256: 9a37e7c125ea438b149ceed5edd5594e2205c6d952712659048ba298cdecc288
+- run_started_at: 2026-11-27T06:33:04.355Z
+- run_finished_at: 2026-11-27T06:33:10.873Z
 
 ### test/cdp-print.mjs
 
 - path: test/cdp-print.mjs
 - pre_sha256: 6b9ff5080afc7f52204301e58a6a253879659fd009813094ba46f9b54abf9298
 - post_sha256: 6b9ff5080afc7f52204301e58a6a253879659fd009813094ba46f9b54abf9298
-- run_started_at: 2026-11-27T04:03:07.134Z
-- run_finished_at: 2026-11-27T04:03:51.621Z
+- run_started_at: 2026-11-27T06:33:04.355Z
+- run_finished_at: 2026-11-27T06:33:10.873Z
 
 ### test/test.py.gz
 
 - path: test/test.py.gz
-- pre_sha256: 7cf772d85b90c5fb2df1d773c52171e325129fa694c7af0c48ffb3cc9c13dc5b
-- post_sha256: 7cf772d85b90c5fb2df1d773c52171e325129fa694c7af0c48ffb3cc9c13dc5b
-- run_started_at: 2026-11-27T04:03:07.134Z
-- run_finished_at: 2026-11-27T04:03:51.621Z
+- pre_sha256: b71bbadd31cd325f4a4eb5968f5d470e6ab00d0f5c89150beeb0a7f754788e3e
+- post_sha256: b71bbadd31cd325f4a4eb5968f5d470e6ab00d0f5c89150beeb0a7f754788e3e
+- run_started_at: 2026-11-27T06:33:04.355Z
+- run_finished_at: 2026-11-27T06:33:10.873Z
 
 ## 结果汇总
 

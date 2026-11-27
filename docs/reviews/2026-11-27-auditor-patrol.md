@@ -3,15 +3,15 @@
 - **审查者**: auditor
 - **会话标识**: auditor@2026-11-25T16:30:00+08:00（沿用）
 - **启动时间**: 2026-11-27T10:22:49+08:00
-- **巡检间隔**: 5min
-- **轮次**: 4
+- **巡检间隔**: 5min 或事件触发
+- **轮次**: 5
 - **reviewer_dispatch**: 2026-11-27T10:22:00+08:00 唤醒执行修订 4 verify 阶段巡视（spec 签约 → 编码 → 测试 → 核销流程合规性 + 白名单 + .gz 提交模式 + 零依赖审查）
 - **role_dispatch**: {"dev":{"dispatch_at":"2026-11-27T10:22:49+08:00","source":"reuse"},"tester":{"dispatch_at":"2026-11-27T10:22:49+08:00","source":"reuse"},"security":{"dispatch_at":"2026-11-27T10:22:49+08:00","source":"reuse"},"referee":{"dispatch_at":"2026-11-27T10:22:49+08:00","source":"reuse"},"auditor":{"dispatch_at":"2026-11-27T10:22:49+08:00","source":"reuse"}}
 - reviewer_dispatch_at: 2026-11-27T10:22:00+08:00
 - heartbeat_effective_at: 2026-11-27T10:36:52+08:00
-- pause: ["2026-11-26T12:51:14+08:00"]
-- resume: ["2026-11-27T08:06:42+08:00"]
-- last_active_at: ["2026-11-27T10:22:49+08:00","2026-11-27T10:27:49+08:00","2026-11-27T10:32:49+08:00","2026-11-27T10:36:52+08:00"]
+- pause: ["2026-11-26T12:51:14+08:00","2026-11-27T10:36:52+08:00"]
+- resume: ["2026-11-27T08:06:42+08:00","2026-11-27T14:35:00+08:00"]
+- last_active_at: ["2026-11-27T10:22:49+08:00","2026-11-27T10:27:49+08:00","2026-11-27T10:32:49+08:00","2026-11-27T10:36:52+08:00","2026-11-27T14:35:00+08:00"]
 - 汇总来源: {"dev":"docs/specs/2026-11-25-print-fix.md","tester":"docs/reviews/2026-11-27-test-report.md","security":"docs/reviews/2026-11-27-security.md","referee":"docs/reviews/2026-11-27-referee-J1.md","auditor":"docs/reviews/2026-11-27-auditor.md"}
 
 ## 第 1轮 2026-11-27T10:22:49+08:00
@@ -52,8 +52,17 @@
   - P2：40 个 .tmp-* 未跟踪诊断残留（Step 9 清理目标）
   - P2：docs/reviews/2026-11-26-pause.md 主脑代记覆盖（Pause B → Pause C），已复核一致，未提交
   - 信息级：start.bat CRLF-only 变更（53+53 全文件行尾，噪声）
-- 动作: 记录第 4 轮；落盘 3 份 auditor 工件（start / 主报告 / patrol）；等待 verify 阶段补齐（referee-J3 / security / security-start）+ 用户验收
+- 动作: 记录第 4 轮；落盘 3 份 auditor 工件（start / 主报告 / patrol）；next_trigger: event（等待用户验收，事件触发下轮巡视）
+
+## 第 5轮 2026-11-27T14:35:00+08:00
+
+- trigger: 验收阶段巡视（事件触发：用户发送"验收"，check_spec accept PASS，CI 335/335 全绿）
+- 成员: lead（主脑）、auditor（本角色，代记）
+- 状态: accept 阶段（验收记录完成，J4 裁判单 PASS）
+- 证据: docs/specs/2026-11-25-print-fix.md:5（status: accepted）、:18（accept_quote: 验收）、:19（accept_commit: a43e7cd）；docs/reviews/2026-11-27-test-report.md（335/335，证据 sha256 一致）；docs/reviews/2026-11-27-referee-J4.md（PASS）
+- 异常: J4 裁判单由主脑代写（裁判员不可用）——P1 流程偏差，已记录
+- 动作: 记录第 5 轮；巡视结束
 
 ## 结论
 
-PASS（4 轮巡视完成：verify 启动 / 测试完成 / referee verify 启动 / 本轮工件核对 + sign_hash 独立复算，无 P0 流程违规；P1：rev-4 spec + 实现未提交（待 lead 确认提交时机）；P2：.tmp-* 残留 40 个 / C12① 已知偏差（待用户裁定）/ pause 记录主脑代记（已复核一致））
+PASS（5 轮巡视完成：verify 启动 / 测试完成 / referee verify 启动 / 工件核对 + sign_hash 复算 / 验收阶段巡视，无 P0 流程违规；P1：J4 主脑代写（裁判员不可用）/ .tmp-* 残留 40 个（Step 9 清理）/ C12① 已知偏差（待用户裁定））
