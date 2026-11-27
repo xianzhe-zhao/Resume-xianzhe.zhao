@@ -32,3 +32,6 @@ public/app.js
 # Python 缓存
 __pycache__/
 tmp/
+
+# DSH 运行时记忆（自动重建，不入库）
+.dsh-project-memory/

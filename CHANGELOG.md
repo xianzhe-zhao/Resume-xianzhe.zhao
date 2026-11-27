@@ -1,5 +1,25 @@
 # 更新日志
 
+## [1.9.1] - 2026-11-27
+
+### 打印/PDF 三问题修复（spec：`docs/specs/2026-11-25-print-fix.md` rev 4）
+
+- **C17*** 打印预览 WYSIWYG：预览区与打印输出像素级一致
+- **C18*** 不分页长页导出：@page 动态高度，PDF 恰好 1 页
+- **C19*** 打印对话框：Ctrl+P 触发 beforeprint/afterprint
+- **C20*** 打印样式：body padding 26mm/16mm，@page margin 0
+- **C21*** 横竖屏自适应：landscape 297mm 宽，portrait 210mm 宽
+- **C22*** .about break-before 已删除
+- **C23*** 150ms 轮询 + 3 次相同读数或 4s 超时
+- **C24*** H = ceil(scrollHeight × 25.4/96) + 20mm
+- **C25*** app.js.gz 往返一致
+- **C26*** 全程无未捕获 JS 异常
+
+**测试**：335/335（test.py）+ 61/61（cdp-print.mjs）= 396/396 PASS
+**部署**：test 2511c45 CI 绿；生产 4d876f6 CI 绿，app.js/style.css hash 与本地一致
+**回滚**：`git revert <merge-commit>` 后推 main 触发自动重部署
+
+
 ## [1.9.0] - 2026-11-24
 
 ### 单版本化（仅留 /ai）+ HR 视角内容打磨（spec：`docs/specs/2026-11-24-single-version-hr-polish.md`）
